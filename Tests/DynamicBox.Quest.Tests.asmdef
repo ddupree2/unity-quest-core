@@ -4,13 +4,19 @@
     "references": [
         "DynamicBox.Quest.Core",
         "DynamicBox.Quest.GameEvents",
-        "DynamicBox.EventManagement"
+        "DynamicBox.EventManagement",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
-    "precompiledReferences": [],
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
     "autoReferenced": false,
     "defineConstraints": [
         "UNITY_INCLUDE_TESTS"
