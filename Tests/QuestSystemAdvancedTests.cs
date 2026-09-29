@@ -142,37 +142,33 @@ namespace DynamicBox.Quest.Tests
 
             var questState = new QuestState(quest);
 
-            // Use reflection to access CanProgressObjective
-            var canProgressMethod = typeof(QuestManager).GetMethod("CanProgressObjective",
-                BindingFlags.NonPublic | BindingFlags.Static);
-
             // Test obj1 (no prerequisites) - should be able to progress
             var obj1State = questState.Objectives["obj1"];
-            bool canProgress = (bool)canProgressMethod.Invoke(null, new object[] { obj1State, questState });
+            bool canProgress = obj1State.CanProgress(questState);
             if (!canProgress)
                 throw new Exception("obj1 should be able to progress (no prerequisites)");
 
             // Test obj2 (requires obj1) - should not progress initially
             var obj2State = questState.Objectives["obj2"];
-            canProgress = (bool)canProgressMethod.Invoke(null, new object[] { obj2State, questState });
+            canProgress = obj2State.CanProgress(questState);
             if (canProgress)
                 throw new Exception("obj2 should not progress without obj1 completed");
 
             // Complete obj1, test obj2 again
             obj1State.SetStatus(ObjectiveStatus.Completed);
-            canProgress = (bool)canProgressMethod.Invoke(null, new object[] { obj2State, questState });
+            canProgress = obj2State.CanProgress(questState);
             if (!canProgress)
                 throw new Exception("obj2 should progress after obj1 completed");
 
             // Test obj3 (requires both obj1 and obj2) - should not progress yet
             var obj3State = questState.Objectives["obj3"];
-            canProgress = (bool)canProgressMethod.Invoke(null, new object[] { obj3State, questState });
+            canProgress = obj3State.CanProgress(questState);
             if (canProgress)
                 throw new Exception("obj3 should not progress without both prerequisites");
 
             // Complete obj2, test obj3 again
             obj2State.SetStatus(ObjectiveStatus.Completed);
-            canProgress = (bool)canProgressMethod.Invoke(null, new object[] { obj3State, questState });
+            canProgress = obj3State.CanProgress(questState);
             if (!canProgress)
                 throw new Exception("obj3 should progress after both prerequisites completed");
 
@@ -365,37 +361,34 @@ namespace DynamicBox.Quest.Tests
             var obj3State = questState.Objectives["obj3"];
             var obj4State = questState.Objectives["obj4"];
 
-            var canProgressMethod = typeof(QuestManager).GetMethod("CanProgressObjective",
-                BindingFlags.NonPublic | BindingFlags.Static);
-
             // Initially only obj1 should be able to progress
-            bool canProgress1 = (bool)canProgressMethod.Invoke(null, new object[] { obj1State, questState });
-            bool canProgress2 = (bool)canProgressMethod.Invoke(null, new object[] { obj2State, questState });
-            bool canProgress3 = (bool)canProgressMethod.Invoke(null, new object[] { obj3State, questState });
-            bool canProgress4 = (bool)canProgressMethod.Invoke(null, new object[] { obj4State, questState });
+            bool canProgress1 = obj1State.CanProgress(questState);
+            bool canProgress2 = obj2State.CanProgress(questState);
+            bool canProgress3 = obj3State.CanProgress(questState);
+            bool canProgress4 = obj4State.CanProgress(questState);
 
             if (!canProgress1 || canProgress2 || canProgress3 || canProgress4)
                 throw new Exception("Only obj1 should be progressable initially");
 
             // Complete obj1, now obj2 and obj3 should be progressable
             obj1State.SetStatus(ObjectiveStatus.Completed);
-            canProgress2 = (bool)canProgressMethod.Invoke(null, new object[] { obj2State, questState });
-            canProgress3 = (bool)canProgressMethod.Invoke(null, new object[] { obj3State, questState });
-            canProgress4 = (bool)canProgressMethod.Invoke(null, new object[] { obj4State, questState });
+            canProgress2 = obj2State.CanProgress(questState);
+            canProgress3 = obj3State.CanProgress(questState);
+            canProgress4 = obj4State.CanProgress(questState);
 
             if (!canProgress2 || !canProgress3 || canProgress4)
                 throw new Exception("obj2 and obj3 should be progressable after obj1, but not obj4");
 
             // Complete obj2 but not obj3, obj4 should still not be progressable
             obj2State.SetStatus(ObjectiveStatus.Completed);
-            canProgress4 = (bool)canProgressMethod.Invoke(null, new object[] { obj4State, questState });
+            canProgress4 = obj4State.CanProgress(questState);
 
             if (canProgress4)
                 throw new Exception("obj4 should not be progressable until both obj2 and obj3 are complete");
 
             // Complete obj3, now obj4 should be progressable
             obj3State.SetStatus(ObjectiveStatus.Completed);
-            canProgress4 = (bool)canProgressMethod.Invoke(null, new object[] { obj4State, questState });
+            canProgress4 = obj4State.CanProgress(questState);
 
             if (!canProgress4)
                 throw new Exception("obj4 should be progressable after both obj2 and obj3 are complete");
@@ -500,11 +493,8 @@ namespace DynamicBox.Quest.Tests
             var questState = new QuestState(quest);
             var validObjState = questState.Objectives["valid_obj"];
 
-            var canProgressMethod = typeof(QuestManager).GetMethod("CanProgressObjective",
-                BindingFlags.NonPublic | BindingFlags.Static);
-
             // Should handle missing prerequisite gracefully (current implementation skips missing prereqs)
-            bool canProgress = (bool)canProgressMethod.Invoke(null, new object[] { validObjState, questState });
+            bool canProgress = validObjState.CanProgress(questState);
 
             // Based on current implementation, this should return true (treats missing as skippable)
             if (!canProgress)

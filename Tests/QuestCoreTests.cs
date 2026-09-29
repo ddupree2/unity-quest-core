@@ -1,18 +1,21 @@
+using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
 
 namespace DynamicBox.Quest.Tests
 {
     /// <summary>
-    /// Runs the existing static test suites through Unity's Test Runner (EditMode). Each suite
-    /// throws on the first failed check, which NUnit reports as a failure with that message.
-    /// New tests for fixes go here as ordinary [Test] methods.
+    /// Runs the existing static test suites through Unity's Test Runner. Each suite throws on the
+    /// first failed check, which NUnit reports as a failure with that message. New tests for
+    /// fixes go here as ordinary [Test] / [UnityTest] methods.
     /// </summary>
     /// <remarks>
-    /// QuestSystemIntegrationTests is a MonoBehaviour coroutine that needs Update to run, so it
-    /// can only run in PlayMode and isn't covered here.
+    /// PlayMode, not EditMode: the suites rely on Unity running Awake when a component's object
+    /// is activated, and on SendMessage("Update"), neither of which Unity does in Edit mode.
     /// </remarks>
     [TestFixture]
     public class QuestCoreTests
@@ -27,7 +30,7 @@ namespace DynamicBox.Quest.Tests
         }
 
         // Some suites create GameObjects with `new GameObject` rather than through
-        // ServiceTestHelpers, so destroy whatever a suite leaves in the open scene.
+        // ServiceTestHelpers, so destroy whatever a suite leaves behind.
         [TearDown]
         public void TearDown()
         {
@@ -56,6 +59,24 @@ namespace DynamicBox.Quest.Tests
         [Test] public void EventDrivenConditions() => EventDrivenConditionTests.RunAllEventDrivenTests();
         [Test] public void FactoryMethods() => FactoryMethodTests.RunAllFactoryMethodTests();
         [Test] public void ImmutableEvents() => ImmutableEventTests.RunAllImmutableEventTests();
+
+        // Frame-based suite (QuestManager polling, events across frames). Its failures surface as
+        // logged exceptions, which the Test Runner also treats as failures.
+        [UnityTest]
+        public IEnumerator Integration()
+        {
+            var runnerObject = new GameObject("QuestIntegrationTestRunner");
+            runnerObject.SetActive(false);
+            var runner = runnerObject.AddComponent<QuestSystemIntegrationTests>();
+
+            // It starts itself from Start() by default; run it here instead so the test waits for it.
+            typeof(QuestSystemIntegrationTests)
+                .GetField("runTestsOnStart", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.SetValue(runner, false);
+
+            runnerObject.SetActive(true);
+            yield return runner.StartCoroutine(runner.RunAllIntegrationTests());
+        }
 
         // Timing measurements, slow and machine-dependent: run on demand only.
         [Test, Explicit] public void PerformanceBenchmarks() => PerformanceBenchmarkTests.RunAllBenchmarks();

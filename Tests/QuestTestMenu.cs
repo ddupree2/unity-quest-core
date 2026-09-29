@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 
@@ -86,3 +87,4 @@ namespace DynamicBox.Quest.Tests
         }
     }
 }
+#endif
