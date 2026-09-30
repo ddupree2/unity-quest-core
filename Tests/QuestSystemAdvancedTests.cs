@@ -1,6 +1,9 @@
 using System;
 using DynamicBox.Quest.Core;
 using DynamicBox.Quest.Core.Conditions;
+using DynamicBox.Quest.Core.Services;
+using DynamicBox.Quest.GameEvents;
+using DynamicBox.EventManagement;
 using UnityEngine;
 using System.Reflection;
 
@@ -28,6 +31,7 @@ namespace DynamicBox.Quest.Tests
             // Advanced QuestManager internal methods
             TestEvaluateObjectiveAndQuestLogic();
             TestMarkDirtyAndProcessQueue();
+            TestSequentialFlagObjectivesAlreadyMet();
             
             // Advanced condition scenarios
             TestComplexPrerequisiteChains();
@@ -506,6 +510,104 @@ namespace DynamicBox.Quest.Tests
         }
 
         // Helper methods
+        /// <summary>
+        /// Regression: completing an objective activates the next one, and a flag condition that is
+        /// already true marks itself dirty during bind. That used to modify the dirty set mid-iteration
+        /// ("Collection was modified"). The whole chain should now resolve in one ProcessAll.
+        /// </summary>
+        private static void TestSequentialFlagObjectivesAlreadyMet()
+        {
+            Debug.Log("
+[ADVANCED TEST] Sequential Flag Objectives Already Met");
+
+            var playerRefObject = new GameObject("TestPlayerRef");
+            var flagService = playerRefObject.AddComponent<DefaultFlagService>();
+            playerRefObject.AddComponent<QuestPlayerRef>();
+            var questManager = CreateTestQuestManager(playerRefObject.GetComponent<QuestPlayerRef>());
+            try
+            {
+                var flagA = CreateFlagCondition("seq_flag_a");
+                var flagB = CreateFlagCondition("seq_flag_b");
+                var flagC = CreateFlagCondition("seq_flag_c");
+
+                var obj1 = new ObjectiveBuilder().WithObjectiveId("obj1").WithCompletionCondition(flagA).Build();
+                var obj2 = new ObjectiveBuilder().WithObjectiveId("obj2").WithCompletionCondition(flagB)
+                    .AddPrerequisite(obj1).Build();
+                var obj3 = new ObjectiveBuilder().WithObjectiveId("obj3").WithCompletionCondition(flagC)
+                    .AddPrerequisite(obj2).Build();
+
+                var quest = new QuestBuilder()
+                    .WithQuestId("sequential_flag_test")
+                    .AddObjective(obj1)
+                    .AddObjective(obj2)
+                    .AddObjective(obj3)
+                    .Build();
+
+                // Later objectives' flags are already set before the quest reaches them
+                flagService.SetFlag("seq_flag_b", true);
+                flagService.SetFlag("seq_flag_c", true);
+
+                int questCompletedCount = 0;
+                questManager.OnQuestCompleted += (q) => questCompletedCount++;
+
+                var questState = questManager.StartQuest(quest);
+                questManager.ProcessPendingEvaluations();
+
+                if (questState.Objectives["obj1"].Status != ObjectiveStatus.InProgress)
+                    throw new Exception("obj1 should be in progress until its flag is set");
+                if (questState.Objectives["obj2"].Status != ObjectiveStatus.NotStarted)
+                    throw new Exception("obj2 should wait for its prerequisite");
+
+                flagService.SetFlag("seq_flag_a", true);
+                EventManager.Instance.Raise(new FlagChangedEvent("seq_flag_a", true));
+
+                // Previously threw InvalidOperationException from inside the dirty set iteration
+                questManager.ProcessPendingEvaluations();
+
+                foreach (var id in new[] { "obj1", "obj2", "obj3" })
+                {
+                    if (questState.Objectives[id].Status != ObjectiveStatus.Completed)
+                        throw new Exception($"{id} should be completed, was {questState.Objectives[id].Status}");
+                }
+
+                if (questState.Status != QuestStatus.Completed)
+                    throw new Exception($"Quest should be completed, was {questState.Status}");
+
+                if (questCompletedCount != 1)
+                    throw new Exception($"OnQuestCompleted should fire exactly once, fired {questCompletedCount} times");
+
+                Debug.Log("✓ Chained already-met flag objectives resolve in one ProcessAll");
+            }
+            finally
+            {
+                CleanupTestQuestManager(questManager);
+            }
+        }
+
+        private static CustomFlagConditionAsset CreateFlagCondition(string flagId)
+        {
+            var condition = ScriptableObject.CreateInstance<CustomFlagConditionAsset>();
+            var idField = typeof(ConditionAsset).GetField("conditionId",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            idField?.SetValue(condition, flagId);
+            return condition;
+        }
+
+        private static QuestManager CreateTestQuestManager(QuestPlayerRef playerRef)
+        {
+            var gameObject = new GameObject("TestQuestManager");
+            gameObject.SetActive(false);
+
+            var questManager = gameObject.AddComponent<QuestManager>();
+
+            var playerRefField = typeof(QuestManager).GetField("playerRef",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            playerRefField?.SetValue(questManager, playerRef);
+
+            gameObject.SetActive(true);
+            return questManager;
+        }
+
         private static QuestManager CreateTestQuestManager()
         {
             var gameObject = new GameObject("TestQuestManager");
