@@ -34,6 +34,38 @@ namespace DynamicBox.Quest.Core
         public IReadOnlyList<QuestState> ActiveQuests => _log?.Active ?? Array.Empty<QuestState>();
 
         /// <summary>
+        /// Gets the quests that ended in completion (latest outcome per quest), with their final objective states.
+        /// </summary>
+        public IReadOnlyList<QuestState> CompletedQuests => _log?.Completed ?? Array.Empty<QuestState>();
+
+        /// <summary>
+        /// Gets the quests that ended in failure (latest outcome per quest), with their final objective states.
+        /// </summary>
+        public IReadOnlyList<QuestState> FailedQuests => _log?.Failed ?? Array.Empty<QuestState>();
+
+        /// <summary>Whether the quest is currently in progress.</summary>
+        public bool IsActive(QuestAsset questAsset) => _log != null && _log.IsActive(questAsset);
+
+        /// <summary>Whether the quest's latest outcome is completion. False once it is restarted.</summary>
+        public bool IsCompleted(QuestAsset questAsset) => _log != null && _log.IsCompleted(questAsset);
+
+        /// <summary>Whether the quest's latest outcome is failure. False once it is restarted.</summary>
+        public bool IsFailed(QuestAsset questAsset) => _log != null && _log.IsFailed(questAsset);
+
+        /// <summary>
+        /// Captures snapshots of active quests and quest history for saving.
+        /// Each snapshot's Status tells active (InProgress), completed and failed quests apart.
+        /// </summary>
+        /// <param name="metadata">Optional metadata stored with the save data.</param>
+        public State.QuestSaveData CaptureSaveData(string? metadata = null)
+        {
+            Debug.Assert(_log != null, "QuestManager._log should be initialized in Awake()");
+
+            return State.QuestStateManager.CaptureAllSnapshots(
+                _log!.Active.Concat(_log.Completed).Concat(_log.Failed), metadata);
+        }
+
+        /// <summary>
         /// Event raised when a quest is successfully completed.
         /// </summary>
         public event Action<QuestState>? OnQuestCompleted;
@@ -167,7 +199,7 @@ namespace DynamicBox.Quest.Core
 
         /// <summary>
         /// Stops a quest and cleans up all event subscriptions and bindings.
-        /// Quest will no longer be tracked or updated.
+        /// Quest will no longer be tracked or updated, and no outcome is recorded in history.
         /// </summary>
         /// <param name="questState">The quest state to stop.</param>
         public void StopQuest(QuestState questState)
@@ -226,7 +258,7 @@ namespace DynamicBox.Quest.Core
             questState.SetStatus(status);
             eventHandler?.Invoke(questState);
             _bindingService!.UnbindQuest(questState);
-            _log!.RemoveQuest(questState);
+            _log!.ArchiveQuest(questState);
         }
 
         /// <summary>

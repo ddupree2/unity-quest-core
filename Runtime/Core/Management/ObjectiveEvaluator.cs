@@ -57,11 +57,13 @@ namespace DynamicBox.Quest.Core
             // Check failure condition first
             if (objective.FailInstance != null && objective.FailInstance.IsMet)
             {
-                _bindingService.UnbindObjective(objective);
                 objective.SetStatus(ObjectiveStatus.Failed);
-                
+
                 quest.SetStatus(QuestStatus.Failed);
-                _log.RemoveQuest(quest);
+                // Unbind every objective, not just this one: the quest is over, so its other
+                // objectives must stop listening to their event assets.
+                _bindingService.UnbindQuest(quest);
+                _log.ArchiveQuest(quest);
                 
                 return QuestEvaluationResult.QuestFailed;
             }
@@ -111,7 +113,7 @@ namespace DynamicBox.Quest.Core
             {
                 quest.SetStatus(QuestStatus.Completed);
                 _bindingService.UnbindQuest(quest);
-                _log.RemoveQuest(quest);
+                _log.ArchiveQuest(quest);
                 
                 return QuestEvaluationResult.QuestCompleted;
             }

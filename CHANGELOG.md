@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Completed/failed quest history**: `QuestLog.Completed` / `Failed` and `QuestManager.CompletedQuests`, `FailedQuests`, `IsActive`, `IsCompleted`, `IsFailed`
+  - Ended quests keep their final `QuestState` (objective statuses included)
+  - One outcome per quest: restarting a quest removes it from history, so the latest outcome wins; `StopQuest` records nothing
+- `QuestManager.CaptureSaveData()` snapshots active quests and history together
+
 ### Changed
 - **Replaced DynamicBox EventManagement with ScriptableEvents** (breaking)
   - Removed the `net.dynamicbox.eventmanagement` dependency and the `DynamicBox.Quest.GameEvents` assembly; Core now references `StarStoneStudio.Events` (`ScriptableEvent<T>`)
@@ -16,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Item Collected, Area Entered and Custom Flag condition assets gained an event asset field; condition instance constructors take the event asset first
 
 ### Fixed
+- A quest that failed automatically left its other objectives bound to their events; failing now unbinds the whole quest
 - `DirtyQueueProcessor.ProcessAll` no longer throws "Collection was modified" when completing an objective activates a next objective whose condition is already met; chained objectives resolve in one call
 
 ## [0.8.4] - 2025-12-15

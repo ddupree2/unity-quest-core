@@ -64,6 +64,9 @@ namespace DynamicBox.Quest.Tests
         // activated a next one whose flag was already set.
         [Test] public void DirtyQueueChainedFlagObjectives() => QuestSystemAdvancedTests.TestSequentialFlagObjectivesAlreadyMet();
 
+        // Completed/failed quest history (QuestLog / QuestManager)
+        [Test] public void QuestHistory() => QuestHistoryTests.RunAllHistoryTests();
+
         // Frame-based suite (QuestManager polling, events across frames). Its failures surface as
         // logged exceptions, which the Test Runner also treats as failures.
         [UnityTest]
