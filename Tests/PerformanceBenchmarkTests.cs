@@ -5,8 +5,7 @@ using System.Diagnostics;
 using DynamicBox.Quest.Core;
 using DynamicBox.Quest.Core.Conditions;
 using DynamicBox.Quest.Core.Services;
-using DynamicBox.Quest.GameEvents;
-using DynamicBox.EventManagement;
+using DynamicBox.Quest.Core.Events;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -116,22 +115,21 @@ namespace DynamicBox.Quest.Tests
         {
             Debug.Log("\n[BENCHMARK] Condition Evaluation Speed");
 
-            var eventManager = EventManager.Instance;
             var context = new QuestContext(null, null, null);
 
             // Create 100 item collection conditions
             var conditions = new List<ItemCollectedConditionInstance>();
             for (int i = 0; i < 100; i++)
             {
-                var condition = new ItemCollectedConditionInstance($"item_{i}", 1);
-                condition.Bind(eventManager, context, () => { });
+                var condition = new ItemCollectedConditionInstance(TestEvents.Items, $"item_{i}", 1);
+                condition.Bind(context, () => { });
                 conditions.Add(condition);
             }
 
             // Warmup
             for (int i = 0; i < WarmupIterations; i++)
             {
-                eventManager.Raise(new ItemCollectedEvent("item_0", 1));
+                TestEvents.Items.Raise(new ItemCollectedEvent("item_0", 1));
             }
 
             // Benchmark: Raise 10000 events
@@ -140,7 +138,7 @@ namespace DynamicBox.Quest.Tests
 
             for (int i = 0; i < eventCount; i++)
             {
-                eventManager.Raise(new ItemCollectedEvent($"item_{i % 100}", 1));
+                TestEvents.Items.Raise(new ItemCollectedEvent($"item_{i % 100}", 1));
             }
 
             stopwatch.Stop();
@@ -153,7 +151,7 @@ namespace DynamicBox.Quest.Tests
             // Cleanup
             foreach (var condition in conditions)
             {
-                condition.Unbind(eventManager, context);
+                condition.Unbind(context);
             }
 
             if (avgMicroseconds > 100) // Threshold: 100μs per event
@@ -310,11 +308,10 @@ namespace DynamicBox.Quest.Tests
 
                 // Benchmark: Complete objectives sequentially
                 stopwatch.Restart();
-                var eventManager = EventManager.Instance;
                 
                 for (int i = 0; i < 100; i++)
                 {
-                    eventManager.Raise(new ItemCollectedEvent($"item_{i}", 1));
+                    TestEvents.Items.Raise(new ItemCollectedEvent($"item_{i}", 1));
                     questManager.ProcessPendingEvaluations();
                 }
 
@@ -387,11 +384,10 @@ namespace DynamicBox.Quest.Tests
 
                 // Benchmark: Complete all quests with single event burst
                 stopwatch.Restart();
-                var eventManager = EventManager.Instance;
                 
                 for (int i = 0; i < 100; i++)
                 {
-                    eventManager.Raise(new ItemCollectedEvent($"item_{i}", 1));
+                    TestEvents.Items.Raise(new ItemCollectedEvent($"item_{i}", 1));
                 }
                 
                 questManager.ProcessPendingEvaluations();
@@ -419,7 +415,7 @@ namespace DynamicBox.Quest.Tests
 
         private static ConditionAsset CreateSimpleCondition(string itemId)
         {
-            var conditionAsset = ScriptableObject.CreateInstance<ItemCollectedConditionAsset>();
+            var conditionAsset = TestEvents.Wire(ScriptableObject.CreateInstance<ItemCollectedConditionAsset>());
             var conditionIdField = typeof(ConditionAsset).GetField("conditionId",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var requiredCountField = typeof(ItemCollectedConditionAsset).GetField("requiredCount",

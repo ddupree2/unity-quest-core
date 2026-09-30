@@ -1,8 +1,7 @@
 #nullable enable
 using System;
-using DynamicBox.EventManagement;
 using DynamicBox.Quest.Core;
-using DynamicBox.Quest.GameEvents;
+using StarStoneStudio.Scriptables;
 using UnityEngine;
 
 namespace DynamicBox.Quest.Tests
@@ -22,6 +21,8 @@ namespace DynamicBox.Quest.Tests
             TestNotifyChangedInvokesCallback();
             TestMultipleBindUnbindCycles();
             TestOnBindOnUnbindLifecycle();
+            TestOnlyAssignedEventAssetIsHeard();
+            TestNullEventAssetDoesNotThrow();
             Debug.Log("✓ All event driven condition tests passed!");
         }
 
@@ -30,14 +31,14 @@ namespace DynamicBox.Quest.Tests
             Debug.Log("\n[TEST] Bind Subscribes To Events");
 
             // Arrange
-            var eventManager = EventManager.Instance;
             var context = new QuestContext();
-            var condition = new TestEventDrivenCondition();
+            var testEvent = ScriptableObject.CreateInstance<TestScriptableEvent>();
+            var condition = new TestEventDrivenCondition(testEvent);
             bool callbackInvoked = false;
 
             // Act
-            condition.Bind(eventManager, context, () => callbackInvoked = true);
-            eventManager.Raise(new TestGameEvent("test"));
+            condition.Bind(context, () => callbackInvoked = true);
+            testEvent.Raise(new TestGameEvent("test"));
 
             // Assert - Event should be received and processed
             if (!condition.EventReceived)
@@ -57,19 +58,19 @@ namespace DynamicBox.Quest.Tests
             Debug.Log("\n[TEST] Unbind Unsubscribes From Events");
 
             // Arrange
-            var eventManager = EventManager.Instance;
             var context = new QuestContext();
-            var condition = new TestEventDrivenCondition();
+            var testEvent = ScriptableObject.CreateInstance<TestScriptableEvent>();
+            var condition = new TestEventDrivenCondition(testEvent);
             bool callbackInvoked = false;
 
             // Act
-            condition.Bind(eventManager, context, () => callbackInvoked = true);
+            condition.Bind(context, () => callbackInvoked = true);
             if (!callbackInvoked) { } // Suppress unused warning - callback is tested implicitly
-            condition.Unbind(eventManager, context);
+            condition.Unbind(context);
             
             // Reset state and trigger event
             condition.Reset();
-            eventManager.Raise(new TestGameEvent("after-unbind"));
+            testEvent.Raise(new TestGameEvent("after-unbind"));
 
             // Assert
             if (condition.EventReceived)
@@ -83,14 +84,14 @@ namespace DynamicBox.Quest.Tests
             Debug.Log("\n[TEST] HandleEvent Called On Event Raised");
 
             // Arrange
-            var eventManager = EventManager.Instance;
             var context = new QuestContext();
-            var condition = new TestEventDrivenCondition();
+            var testEvent = ScriptableObject.CreateInstance<TestScriptableEvent>();
+            var condition = new TestEventDrivenCondition(testEvent);
 
             // Act
-            condition.Bind(eventManager, context, () => { });
-            eventManager.Raise(new TestGameEvent("data1"));
-            eventManager.Raise(new TestGameEvent("data2"));
+            condition.Bind(context, () => { });
+            testEvent.Raise(new TestGameEvent("data1"));
+            testEvent.Raise(new TestGameEvent("data2"));
 
             // Assert
             if (!condition.EventReceived)
@@ -108,13 +109,13 @@ namespace DynamicBox.Quest.Tests
             Debug.Log("\n[TEST] NotifyChanged Invokes Callback");
 
             // Arrange
-            var eventManager = EventManager.Instance;
             var context = new QuestContext();
-            var condition = new TestEventDrivenCondition();
+            var testEvent = ScriptableObject.CreateInstance<TestScriptableEvent>();
+            var condition = new TestEventDrivenCondition(testEvent);
             int callbackCount = 0;
 
             // Act
-            condition.Bind(eventManager, context, () => callbackCount++);
+            condition.Bind(context, () => callbackCount++);
             condition.TriggerNotifyChanged(); // Direct call to NotifyChanged
             condition.TriggerNotifyChanged();
 
@@ -130,31 +131,31 @@ namespace DynamicBox.Quest.Tests
             Debug.Log("\n[TEST] Multiple Bind/Unbind Cycles");
 
             // Arrange
-            var eventManager = EventManager.Instance;
             var context = new QuestContext();
-            var condition = new TestEventDrivenCondition();
+            var testEvent = ScriptableObject.CreateInstance<TestScriptableEvent>();
+            var condition = new TestEventDrivenCondition(testEvent);
 
             // Act & Assert - Cycle 1
-            condition.Bind(eventManager, context, () => { });
-            eventManager.Raise(new TestGameEvent("cycle1"));
+            condition.Bind(context, () => { });
+            testEvent.Raise(new TestGameEvent("cycle1"));
             if (!condition.EventReceived || condition.ReceivedEventData != "cycle1")
                 throw new Exception("Cycle 1 failed");
 
-            condition.Unbind(eventManager, context);
+            condition.Unbind(context);
             condition.Reset();
 
             // Act & Assert - Cycle 2
-            condition.Bind(eventManager, context, () => { });
-            eventManager.Raise(new TestGameEvent("cycle2"));
+            condition.Bind(context, () => { });
+            testEvent.Raise(new TestGameEvent("cycle2"));
             if (!condition.EventReceived || condition.ReceivedEventData != "cycle2")
                 throw new Exception("Cycle 2 failed");
 
-            condition.Unbind(eventManager, context);
+            condition.Unbind(context);
             condition.Reset();
 
             // Act & Assert - Cycle 3
-            condition.Bind(eventManager, context, () => { });
-            eventManager.Raise(new TestGameEvent("cycle3"));
+            condition.Bind(context, () => { });
+            testEvent.Raise(new TestGameEvent("cycle3"));
             if (!condition.EventReceived || condition.ReceivedEventData != "cycle3")
                 throw new Exception("Cycle 3 failed");
 
@@ -166,12 +167,12 @@ namespace DynamicBox.Quest.Tests
             Debug.Log("\n[TEST] OnBind/OnUnbind Lifecycle Hooks");
 
             // Arrange
-            var eventManager = EventManager.Instance;
             var context = new QuestContext();
-            var condition = new TestEventDrivenCondition();
+            var testEvent = ScriptableObject.CreateInstance<TestScriptableEvent>();
+            var condition = new TestEventDrivenCondition(testEvent);
 
             // Act
-            condition.Bind(eventManager, context, () => { });
+            condition.Bind(context, () => { });
 
             // Assert
             if (!condition.OnBindCalled)
@@ -180,13 +181,55 @@ namespace DynamicBox.Quest.Tests
                 throw new Exception("OnUnbind should not be called before Unbind");
 
             // Act
-            condition.Unbind(eventManager, context);
+            condition.Unbind(context);
 
             // Assert
             if (!condition.OnUnbindCalled)
                 throw new Exception("OnUnbind was not called during Unbind");
 
             Debug.Log("✓ OnBind/OnUnbind lifecycle hooks work correctly");
+        }
+
+        private static void TestOnlyAssignedEventAssetIsHeard()
+        {
+            Debug.Log("\n[TEST] Only Assigned Event Asset Is Heard");
+
+            // Arrange - two assets of the same payload type
+            var context = new QuestContext();
+            var assignedEvent = ScriptableObject.CreateInstance<TestScriptableEvent>();
+            var otherEvent = ScriptableObject.CreateInstance<TestScriptableEvent>();
+            var condition = new TestEventDrivenCondition(assignedEvent);
+
+            // Act
+            condition.Bind(context, () => { });
+            otherEvent.Raise(new TestGameEvent("other"));
+
+            // Assert
+            if (condition.EventReceived)
+                throw new Exception("Condition heard an event asset it was not assigned");
+
+            assignedEvent.Raise(new TestGameEvent("assigned"));
+            if (condition.ReceivedEventData != "assigned")
+                throw new Exception("Condition did not hear its assigned event asset");
+
+            condition.Unbind(context);
+            Debug.Log("✓ Only the assigned event asset is heard");
+        }
+
+        private static void TestNullEventAssetDoesNotThrow()
+        {
+            Debug.Log("\n[TEST] Null Event Asset Does Not Throw");
+
+            // A missing Inspector assignment should warn, not break quest binding
+            var context = new QuestContext();
+            var condition = new TestEventDrivenCondition(null);
+
+            condition.Bind(context, () => { });
+            if (!condition.OnBindCalled)
+                throw new Exception("OnBind should still run without an event asset");
+            condition.Unbind(context);
+
+            Debug.Log("✓ Null event asset binds and unbinds without throwing");
         }
 
         // Test implementation of EventDrivenConditionBase
@@ -198,6 +241,8 @@ namespace DynamicBox.Quest.Tests
             public bool OnBindCalled { get; private set; }
             public bool OnUnbindCalled { get; private set; }
             private bool _isMet;
+
+            public TestEventDrivenCondition(ScriptableEvent<TestGameEvent>? testEvent) : base(testEvent) { }
 
             public override bool IsMet => _isMet;
 
@@ -231,16 +276,20 @@ namespace DynamicBox.Quest.Tests
                 HandleEventCallCount = 0;
             }
         }
+    }
 
-        // Test event type
-        private class TestGameEvent : GameEvent
+    // Test event payload and its event asset type
+    internal sealed class TestGameEvent
+    {
+        public string Data { get; }
+
+        public TestGameEvent(string data)
         {
-            public string Data { get; }
-
-            public TestGameEvent(string data)
-            {
-                Data = data;
-            }
+            Data = data;
         }
+    }
+
+    internal sealed class TestScriptableEvent : ScriptableEvent<TestGameEvent>
+    {
     }
 }

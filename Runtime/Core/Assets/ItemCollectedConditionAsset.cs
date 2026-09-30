@@ -1,15 +1,18 @@
 #nullable enable
+using DynamicBox.Quest.Core.Events;
 using UnityEngine;
 
 namespace DynamicBox.Quest.Core.Conditions
 {
     /// <summary>
     /// Condition asset that completes when a specific item is collected.
-    /// Listens to ItemCollectedEvent from the event system.
+    /// Listens to the assigned ItemCollectedScriptableEvent asset.
     /// </summary>
     [CreateAssetMenu(menuName = "DynamicBox/Quest/Conditions/Item Collected", fileName = "NewItemCollectedCondition")]
     public class ItemCollectedConditionAsset : ConditionAsset
     {
+        [Tooltip("Event asset the game raises when an item is collected.")]
+        [SerializeField] private ItemCollectedScriptableEvent? itemCollectedEvent;
         [SerializeField] private int requiredCount = 1;
         
         /// <summary>
@@ -19,7 +22,7 @@ namespace DynamicBox.Quest.Core.Conditions
 
         public override IConditionInstance CreateInstance()
         {
-            return new ItemCollectedConditionInstance(ConditionId, requiredCount);
+            return new ItemCollectedConditionInstance(itemCollectedEvent, ConditionId, requiredCount);
         }
     }
 }

@@ -1,12 +1,13 @@
 #nullable enable
-using DynamicBox.Quest.GameEvents;
+using DynamicBox.Quest.Core.Events;
+using StarStoneStudio.Scriptables;
 using UnityEngine;
 
 namespace DynamicBox.Quest.Core.Conditions
 {
     /// <summary>
     /// Condition instance that tracks custom game flags.
-    /// Uses both event-driven updates (FlagChangedEvent) and service queries (IQuestFlagService).
+    /// Uses both event-driven updates (a FlagChangedScriptableEvent asset) and service queries (IQuestFlagService).
     /// </summary>
     public sealed class CustomFlagConditionInstance : EventDrivenConditionBase<FlagChangedEvent>
     {
@@ -18,7 +19,8 @@ namespace DynamicBox.Quest.Core.Conditions
 
         public override bool IsMet => _isCompleted;
 
-        public CustomFlagConditionInstance(string flagId, bool expectedValue, string? description = null)
+        public CustomFlagConditionInstance(ScriptableEvent<FlagChangedEvent>? flagChangedEvent, string flagId, bool expectedValue, string? description = null)
+            : base(flagChangedEvent)
         {
             _flagId = flagId;
             _expectedValue = expectedValue;
@@ -42,7 +44,7 @@ namespace DynamicBox.Quest.Core.Conditions
                 
                 Debug.LogWarning(
                     $"CustomFlagCondition for '{_flagId}' has no IQuestFlagService. " +
-                    $"It will only respond to FlagChangedEvents. " +
+                    $"It will only respond to its FlagChangedScriptableEvent. " +
                     $"Consider adding a FlagService to QuestPlayerRef for initial state checks.");
             }
         }

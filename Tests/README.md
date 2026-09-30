@@ -1,8 +1,8 @@
 # Quest System Test Suite - Quick Reference
 
-**Status:** ✅ **PRODUCTION READY**  
-**Coverage:** 95%+ of core functionality  
-**Total Tests:** 50+ tests across multiple test suites  
+**Status:** ✅ **PRODUCTION READY**
+**Coverage:** 95%+ of core functionality
+**Total Tests:** 50+ tests across multiple test suites
 
 ## 🚀 Quick Start
 
@@ -58,20 +58,20 @@ Quest System → Run All Tests
 ### ❌ Common Issues & Solutions
 
 #### "Type not found" errors
-**Problem:** Missing assembly references  
-**Solution:** 
+**Problem:** Missing assembly references
+**Solution:**
 1. Check that `DynamicBox.Quest.Tests.asmdef` exists in Tests folder
-2. Verify assembly references include DynamicBox.Quest.Core and DynamicBox.Quest.GameEvents
+2. Verify assembly references include DynamicBox.Quest.Core and StarStoneStudio.Events
 
 #### Tests fail immediately
-**Problem:** Missing dependencies or setup  
+**Problem:** Missing dependencies or setup
 **Solution:**
 1. Run validation first: `TestValidation.ValidateAllComponents()`
 2. Check Console for detailed error messages
 3. Ensure Unity is in Play Mode for integration tests
 
 #### "TestExecutor component not found"
-**Problem:** Script compilation issues  
+**Problem:** Script compilation issues
 **Solution:**
 1. Check Console for compilation errors
 2. Reimport Tests folder: Right-click → Reimport
@@ -84,7 +84,7 @@ Quest System → Run All Tests
 var testType = typeof(DynamicBox.Quest.Tests.QuestSystemTests);
 Debug.Log($"Test type found: {testType != null}");
 
-// Step 2: Infrastructure validation  
+// Step 2: Infrastructure validation
 bool valid = DynamicBox.Quest.Tests.TestValidation.ValidateAllComponents();
 Debug.Log($"Infrastructure valid: {valid}");
 
@@ -115,7 +115,7 @@ DynamicBox.Quest.Tests.TestValidation.RunSmokeTest();
 
 ### Core Test Suites
 - **QuestSystemTests.cs** (1,325 lines) - 25+ unit tests
-- **QuestSystemIntegrationTests.cs** (652 lines) - 9 integration tests  
+- **QuestSystemIntegrationTests.cs** (652 lines) - 9 integration tests
 - **QuestSystemAdvancedTests.cs** (558 lines) - 10+ advanced tests
 - **QuestSerializationTests.cs** - 7 serialization tests
 - **ServiceImplementationTests.cs** ✨ NEW - 16 service implementation tests

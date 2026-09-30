@@ -1,22 +1,19 @@
 #nullable enable
 using System;
-using DynamicBox.EventManagement;
 
 namespace DynamicBox.Quest.Core
 {
     /// <summary>
-    /// Manages binding and unbinding of condition instances to the event system.
+    /// Manages binding and unbinding of condition instances to their events.
     /// Extracted from QuestManager to follow Single Responsibility Principle.
     /// </summary>
     internal sealed class ConditionBindingService
     {
-        private readonly EventManager _eventManager;
         private readonly QuestContext _context;
         private Action<ObjectiveState, IConditionInstance, bool>? _onConditionChanged;
 
-        public ConditionBindingService(EventManager eventManager, QuestContext context)
+        public ConditionBindingService(QuestContext context)
         {
-            _eventManager = eventManager;
             _context = context;
         }
 
@@ -30,14 +27,14 @@ namespace DynamicBox.Quest.Core
         }
 
         /// <summary>
-        /// Binds all conditions for an objective to the event system.
+        /// Binds all conditions for an objective to their events.
         /// </summary>
         public void BindObjective(QuestState quest, ObjectiveState objective, Action onDirty)
         {
             if (objective.CompletionInstance != null)
             {
                 var condition = objective.CompletionInstance;
-                objective.CompletionInstance.Bind(_eventManager, _context, () =>
+                objective.CompletionInstance.Bind(_context, () =>
                 {
                     _onConditionChanged?.Invoke(objective, condition, condition.IsMet);
                     onDirty();
@@ -47,7 +44,7 @@ namespace DynamicBox.Quest.Core
             if (objective.FailInstance != null)
             {
                 var condition = objective.FailInstance;
-                objective.FailInstance.Bind(_eventManager, _context, () =>
+                objective.FailInstance.Bind(_context, () =>
                 {
                     _onConditionChanged?.Invoke(objective, condition, condition.IsMet);
                     onDirty();
@@ -56,23 +53,23 @@ namespace DynamicBox.Quest.Core
         }
 
         /// <summary>
-        /// Unbinds all conditions for an objective from the event system.
+        /// Unbinds all conditions for an objective from their events.
         /// </summary>
         public void UnbindObjective(ObjectiveState objective)
         {
             if (objective.CompletionInstance != null)
             {
-                objective.CompletionInstance.Unbind(_eventManager, _context);
+                objective.CompletionInstance.Unbind(_context);
             }
 
             if (objective.FailInstance != null)
             {
-                objective.FailInstance.Unbind(_eventManager, _context);
+                objective.FailInstance.Unbind(_context);
             }
         }
 
         /// <summary>
-        /// Unbinds all objectives in a quest from the event system.
+        /// Unbinds all objectives in a quest from their events.
         /// </summary>
         public void UnbindQuest(QuestState quest)
         {

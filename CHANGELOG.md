@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Replaced DynamicBox EventManagement with ScriptableEvents** (breaking)
+  - Removed the `net.dynamicbox.eventmanagement` dependency and the `DynamicBox.Quest.GameEvents` assembly; Core now references `StarStoneStudio.Events` (`ScriptableEvent<T>`)
+  - `IConditionInstance.Bind(QuestContext, Action)` / `Unbind(QuestContext)` no longer take an `EventManager`
+  - `EventDrivenConditionBase<TEvent>` takes the `ScriptableEvent<TEvent>` asset to listen to in its constructor; a condition hears only its assigned asset, not every event of that type
+  - `ItemCollectedEvent`, `AreaEnteredEvent` and `FlagChangedEvent` moved to `DynamicBox.Quest.Core.Events` as plain immutable payloads, each with an event asset type (`ItemCollectedScriptableEvent`, `AreaEnteredScriptableEvent`, `FlagChangedScriptableEvent`)
+  - Item Collected, Area Entered and Custom Flag condition assets gained an event asset field; condition instance constructors take the event asset first
+
+### Fixed
+- `DirtyQueueProcessor.ProcessAll` no longer throws "Collection was modified" when completing an objective activates a next objective whose condition is already met; chained objectives resolve in one call
+
 ## [0.8.4] - 2025-12-15
 
 ### Fixed

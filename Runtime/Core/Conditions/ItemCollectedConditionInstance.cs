@@ -1,5 +1,6 @@
 #nullable enable
-using DynamicBox.Quest.GameEvents;
+using DynamicBox.Quest.Core.Events;
+using StarStoneStudio.Scriptables;
 using UnityEngine;
 
 namespace DynamicBox.Quest.Core.Conditions
@@ -24,7 +25,8 @@ namespace DynamicBox.Quest.Core.Conditions
         
         public string ProgressDescription => $"{_currentCount}/{_requiredCount} items collected";
 
-        public ItemCollectedConditionInstance(string itemId, int requiredCount)
+        public ItemCollectedConditionInstance(ScriptableEvent<ItemCollectedEvent>? itemCollectedEvent, string itemId, int requiredCount)
+            : base(itemCollectedEvent)
         {
             _itemId = itemId;
             _requiredCount = requiredCount;

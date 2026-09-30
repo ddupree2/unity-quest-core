@@ -194,7 +194,7 @@ Polling (optional)
 └─ Polling Interval       (float, default: 0.25s)
 ```
 
-**Note**: QuestManager automatically uses `EventManager.Instance` - no manual EventManager reference needed.
+**Note**: Conditions listen to ScriptableEvent assets assigned on their condition assets; QuestManager needs no event bus reference.
 
 #### Public Methods
 
@@ -218,10 +218,10 @@ public class GameController : MonoBehaviour
 {
     [SerializeField] private QuestManager questManager;
     [SerializeField] private QuestAsset mainQuest;
+    [SerializeField] private ItemCollectedScriptableEvent itemCollectedEvent;
 
     private void Start()
     {
-        // QuestManager automatically uses EventManager.Instance
         questManager.OnQuestCompleted += OnQuestComplete;
         questManager.StartQuest(mainQuest);
     }
@@ -230,11 +230,11 @@ public class GameController : MonoBehaviour
     {
         Debug.Log($"Completed: {quest.Definition.DisplayName}");
     }
-    
-    // Publish events through EventManager singleton
+
+    // Publish by raising the event asset assigned on the condition assets
     private void CollectItem(string itemId)
     {
-        EventManager.Instance.Raise(new ItemCollectedEvent(itemId, 1));
+        itemCollectedEvent.Raise(new ItemCollectedEvent(itemId, 1));
     }
 }
 ```
@@ -364,19 +364,19 @@ public bool IsMet { get; }
 #### Methods
 
 ```csharp
-public void Bind(IQuestEventBus eventBus, QuestContext context, Action onChanged);
-public void Unbind(IQuestEventBus eventBus, QuestContext context);
+public void Bind(QuestContext context, Action onChanged);
+public void Unbind(QuestContext context);
 ```
 
 #### Lifecycle
 
 1. **Bind()** – Called when objective becomes active
-   - Subscribe to events
+   - Register with ScriptableEvent assets
    - Initialize state
-   
+
 2. **IsMet** – Checked periodically (on events or polling)
    - Return true when condition is satisfied
-   
+
 3. **Unbind()** – Called when objective completes/fails
    - Unsubscribe from events
    - Clean up resources
@@ -405,7 +405,7 @@ For time-based conditions, sensor polling, etc.
 public class TimeElapsedConditionInstance : IConditionInstance, IPollingConditionInstance
 {
     private float _elapsed;
-    
+
     public void Refresh(QuestContext context, Action onChanged)
     {
         _elapsed += Time.deltaTime;
@@ -590,13 +590,12 @@ private void Start() {
 
 ## Error Handling
 
-### EventManagementQuestBus Not Implemented
+### Condition Never Hears Its Event
 
-If you see `NotImplementedException` from `EventManagementQuestBus`:
+If an event-driven condition logs "has no event asset assigned":
 
-1. Check `Assets/GenericQuestCore/Runtime/EventManagementAdapter/EventManagementQuestBus.cs`
-2. Implement the adapter for your EventManager
-3. Map Subscribe/Unsubscribe/Publish methods
+1. Assign the event asset on the condition asset in the Inspector
+2. Make sure game code raises that same asset, not another asset of the same type
 
 ### Objectives Not Progressing
 
@@ -768,14 +767,14 @@ QuestStateSnapshot snapshot = QuestStateManager.CaptureSnapshot(questState);
 
 // Capture multiple quests
 QuestSaveData saveData = QuestStateManager.CaptureAllSnapshots(
-    questStates, 
+    questStates,
     metadata: "Player Save"
 );
 
 // Restore single quest
 QuestState restored = QuestStateManager.RestoreFromSnapshot(
-    snapshot, 
-    questAsset, 
+    snapshot,
+    questAsset,
     context
 );
 
@@ -796,8 +795,8 @@ QuestStateManager.SaveAllQuestsToFile(quests, "path/to/save.json", "metadata");
 
 // Load from file
 QuestState quest = QuestStateManager.LoadQuestFromFile(
-    "path/to/save.json", 
-    questAsset, 
+    "path/to/save.json",
+    questAsset,
     context
 );
 
@@ -818,7 +817,7 @@ List<QuestState> quests = QuestStateManager.LoadAllQuestsFromFile(
 - Platform-specific cloud saves (Steam, Xbox, PlayStation)
 - Third-party assets (Easy Save 3, etc.)
 
-**The quest system owns:** Serializable state structure  
+**The quest system owns:** Serializable state structure
 **Your game owns:** When, where, and how to persist
 
 ---
@@ -829,7 +828,7 @@ List<QuestState> quests = QuestStateManager.LoadAllQuestsFromFile(
 
 1. Map your quest data to QuestAsset/ObjectiveAsset
 2. Implement custom ConditionAsset for your event types
-3. Replace event bus with EventManagementQuestBus
+3. Raise ScriptableEvent assets from your game systems
 4. Test with QuestSystemTests as reference
 
 ### Performance Profiling

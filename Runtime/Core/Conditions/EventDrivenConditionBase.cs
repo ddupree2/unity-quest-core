@@ -1,45 +1,65 @@
 #nullable enable
 using System;
-using DynamicBox.EventManagement;
+using StarStoneStudio.Scriptables;
+using UnityEngine;
 
 namespace DynamicBox.Quest.Core
 {
     /// <summary>
-    /// Base class for event-driven conditions that handles common event subscription boilerplate.
-    /// Reduces code duplication and ensures consistent event handler management.
+    /// Base class for conditions driven by a ScriptableEvent asset. Registers with the event on Bind
+    /// and unregisters on Unbind, so only the asset assigned to this condition is heard, not every
+    /// event of the same payload type in the game.
     /// </summary>
-    /// <typeparam name="TEvent">The type of game event this condition listens to.</typeparam>
-    public abstract class EventDrivenConditionBase<TEvent> : IConditionInstance where TEvent : GameEvent
+    /// <typeparam name="TEvent">The payload type raised by the event asset.</typeparam>
+    public abstract class EventDrivenConditionBase<TEvent> : IConditionInstance
     {
-        private EventManager? _eventManager;
+        private readonly ScriptableEvent<TEvent>? _scriptableEvent;
         private Action? _onChanged;
-        private EventManager.EventDelegate<TEvent>? _eventHandler;
+        private bool _isRegistered;
 
         public abstract bool IsMet { get; }
 
-        public void Bind(EventManager eventManager, QuestContext context, Action onChanged)
+        /// <param name="scriptableEvent">
+        /// The event asset to listen to. Null logs a warning on Bind, since it is almost always a
+        /// missing Inspector assignment; the condition then only reacts to its own OnBind checks.
+        /// </param>
+        protected EventDrivenConditionBase(ScriptableEvent<TEvent>? scriptableEvent)
         {
-            _eventManager = eventManager;
+            _scriptableEvent = scriptableEvent;
+        }
+
+        public void Bind(QuestContext context, Action onChanged)
+        {
             _onChanged = onChanged;
-            _eventHandler = OnEventReceived;
-            
-            eventManager.AddListener(_eventHandler);
-            
+
+            if (_scriptableEvent != null)
+            {
+                // Guard against double registration if Bind is called twice without Unbind
+                if (!_isRegistered)
+                {
+                    _scriptableEvent.Register(OnEventReceived);
+                    _isRegistered = true;
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"{GetType().Name} '{this}' has no event asset assigned and will not receive events.");
+            }
+
             // Allow subclasses to perform additional initialization
             OnBind(context);
         }
 
-        public void Unbind(EventManager eventManager, QuestContext context)
+        public void Unbind(QuestContext context)
         {
-            if (_eventManager != null && _eventHandler != null)
+            if (_isRegistered && _scriptableEvent != null)
             {
-                eventManager.RemoveListener(_eventHandler);
-                _eventManager = null;
-                _eventHandler = null;
+                _scriptableEvent.Unregister(OnEventReceived);
+                _isRegistered = false;
             }
-            
+
             _onChanged = null;
-            
+
             // Allow subclasses to perform cleanup
             OnUnbind(context);
         }
@@ -54,19 +74,19 @@ namespace DynamicBox.Quest.Core
         }
 
         /// <summary>
-        /// Called when an event of type TEvent is received.
+        /// Called when the event asset is raised.
         /// Implement condition-specific logic here.
         /// </summary>
         protected abstract void HandleEvent(TEvent evt);
 
         /// <summary>
-        /// Called after the condition is bound to the event system.
+        /// Called after the condition is bound.
         /// Override to perform additional initialization.
         /// </summary>
         protected virtual void OnBind(QuestContext context) { }
 
         /// <summary>
-        /// Called before the condition is unbound from the event system.
+        /// Called when the condition is unbound.
         /// Override to perform cleanup.
         /// </summary>
         protected virtual void OnUnbind(QuestContext context) { }

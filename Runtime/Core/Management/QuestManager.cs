@@ -1,5 +1,4 @@
 #nullable enable
-using DynamicBox.EventManagement;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +20,6 @@ namespace DynamicBox.Quest.Core
         [SerializeField] private bool enablePolling = true;
         [SerializeField] private float pollingInterval = 0.25f;
 
-        private EventManager? _eventManager;
         private QuestLog? _log;
         private QuestContext? _context;
         private ConditionBindingService? _bindingService;
@@ -65,10 +63,9 @@ namespace DynamicBox.Quest.Core
                 return;
             }
 
-            _eventManager = EventManager.Instance;
             _log = new QuestLog();
             _context = playerRef.BuildContext();
-            _bindingService = new ConditionBindingService(_eventManager, _context);
+            _bindingService = new ConditionBindingService(_context);
             _evaluator = new ObjectiveEvaluator(_log, _bindingService);
             _processor = new DirtyQueueProcessor(_evaluator);
             

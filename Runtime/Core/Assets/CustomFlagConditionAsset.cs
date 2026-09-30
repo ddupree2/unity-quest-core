@@ -1,4 +1,5 @@
 #nullable enable
+using DynamicBox.Quest.Core.Events;
 using UnityEngine;
 using DynamicBox.Quest.Core.Conditions;
 
@@ -6,11 +7,13 @@ namespace DynamicBox.Quest.Core.Conditions
 {
     /// <summary>
     /// Condition asset that completes when a custom flag matches an expected value.
-    /// Listens to FlagChangedEvent from the event system.
+    /// Listens to the assigned FlagChangedScriptableEvent asset.
     /// </summary>
     [CreateAssetMenu(menuName = "DynamicBox/Quest/Conditions/Custom Flag Condition", fileName = "NewCustomFlagCondition")]
     public class CustomFlagConditionAsset : ConditionAsset
     {
+        [Tooltip("Event asset the game raises when a flag changes.")]
+        [SerializeField] private FlagChangedScriptableEvent? _flagChangedEvent;
         [SerializeField] private bool _expectedValue = true;
         [SerializeField, TextArea(2, 3)] private string _description = string.Empty;
         
@@ -26,7 +29,7 @@ namespace DynamicBox.Quest.Core.Conditions
 
         public override IConditionInstance CreateInstance()
         {
-            return new CustomFlagConditionInstance(ConditionId, _expectedValue, _description);
+            return new CustomFlagConditionInstance(_flagChangedEvent, ConditionId, _expectedValue, _description);
         }
     }
 }

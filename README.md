@@ -45,27 +45,22 @@ In Unity Package Manager, click the `+` button and select "Add package from git 
 https://github.com/mechaniqe/unity-quest-core.git
 ```
 
-**Dependencies**: You must manually install the DynamicBox EventManagement package:
-
-```
-https://github.com/mechaniqe/event-management.git
-```
+**Dependencies**: Requires the Star Stone Studio Events package (`com.starstonestudio.events`), which provides `ScriptableEvent<T>`. It lives as an embedded package in the game project.
 
 ### Manual Installation
 
 1. Clone the repository
 2. Copy the `Packages/net.dynamicbox.quest.core` folder to your project's `Packages/` directory
-3. Install the DynamicBox EventManagement dependency manually:
-   - Via UPM: `https://github.com/mechaniqe/event-management.git`
-   - Or copy it to your `Packages/` directory
+3. Make sure `com.starstonestudio.events` is also in your `Packages/` directory
 
 ### Setup
 
-The Quest System automatically uses `EventManager.Instance` - no manual setup required!
+Conditions listen to **ScriptableEvent assets** (`ScriptableEvent<T>`), not a global event bus. A condition hears only the event asset assigned to it on its condition asset; game code raises that same asset.
 
 1. Add a QuestManager component to a GameObject in your scene
 2. Assign a QuestPlayerRef to provide quest context
-3. Start creating quests!
+3. Create event assets (Create → DynamicBox → Quest → Events) and assign them on event-driven condition assets
+4. Start creating quests!
 
 ## Quick Start
 
@@ -116,8 +111,6 @@ Right-click in Project → Create → Quests → Quest
 
 ```csharp
 using DynamicBox.Quest.Core;
-using DynamicBox.Quest.GameEvents;
-using DynamicBox.EventManagement;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -125,7 +118,7 @@ public class GameManager : MonoBehaviour
     [Header ("References")]
     [SerializeField] private QuestManager questManager;
     [SerializeField] private QuestAsset tutorialQuest;
-    
+
     void Start()
     {
         // Subscribe to quest events
@@ -133,29 +126,29 @@ public class GameManager : MonoBehaviour
         questManager.OnQuestFailed += HandleQuestFailed;
         questManager.OnObjectiveStatusChanged += HandleObjectiveChanged;
         questManager.OnConditionStatusChanged += HandleConditionChanged;
-        
+
         // Start the tutorial quest
         questManager.StartQuest(tutorialQuest);
     }
-    
+
     void HandleQuestCompleted(QuestState questState)
     {
         Debug.Log($"Quest completed: {questState.Definition.DisplayName}");
         // Grant rewards, unlock new content, etc.
     }
-    
+
     void HandleQuestFailed(QuestState questState)
     {
         Debug.Log($"Quest failed: {questState.Definition.DisplayName}");
         // Handle failure consequences
     }
-    
+
     void HandleObjectiveChanged(ObjectiveState objectiveState)
     {
         Debug.Log($"Objective updated: {objectiveState.Definition.DisplayName} - {objectiveState.Status}");
         // Update UI, show notifications
     }
-    
+
     void HandleConditionChanged(ObjectiveState objective, IConditionInstance condition, bool isMet)
     {
         Debug.Log($"Condition changed for {objective.Definition.DisplayName}: {condition.GetType().Name} = {isMet}");
@@ -166,29 +159,36 @@ public class GameManager : MonoBehaviour
 
 ### Step 4: Publish Game Events
 
+Raise the same event asset that is assigned on the condition assets:
+
 ```csharp
+using DynamicBox.Quest.Core.Events;
+
 // In your inventory system
 public class InventorySystem : MonoBehaviour
 {
+    [SerializeField] private ItemCollectedScriptableEvent itemCollectedEvent;
+
     public void CollectItem(string itemId, int amount)
     {
         // Add to inventory logic here...
-        
+
         // Notify quest system
-        EventManager.Instance.Raise(new ItemCollectedEvent(itemId, amount));
+        itemCollectedEvent.Raise(new ItemCollectedEvent(itemId, amount));
     }
 }
 
 // In your area/trigger system
 public class AreaTrigger : MonoBehaviour
 {
+    [SerializeField] private AreaEnteredScriptableEvent areaEnteredEvent;
     [SerializeField] private string areaId;
-    
+
     void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
-            EventManager.Instance.Raise(new AreaEnteredEvent(areaId));
+            areaEnteredEvent.Raise(new AreaEnteredEvent(areaId));
         }
     }
 }
@@ -196,12 +196,14 @@ public class AreaTrigger : MonoBehaviour
 // In your game state system
 public class GameStateManager : MonoBehaviour
 {
+    [SerializeField] private FlagChangedScriptableEvent flagChangedEvent;
+
     public void SetFlag(string flagId, bool value)
     {
         // Update game state...
-        
+
         // Notify quest system
-        EventManager.Instance.Raise(new FlagChangedEvent(flagId, value));
+        flagChangedEvent.Raise(new FlagChangedEvent(flagId, value));
     }
 }
 ```
@@ -215,7 +217,7 @@ public class GameStateManager : MonoBehaviour
 Create → Quests → Quest: "Prepare for Battle"
 ├─ Objective 1: "Collect 10 Health Potions"
 │   └─ Completion: Item Collected (health_potion, 10)
-├─ Objective 2: "Find a Weapon" 
+├─ Objective 2: "Find a Weapon"
 │   └─ Completion: Item Collected (weapon, 1)
 └─ Objective 3: "Enter the Dungeon"
     ├─ Prerequisites: [Objective 1, Objective 2]
@@ -247,7 +249,7 @@ Create → Quests → Quest: "Explore the Forest"
 public class QuestController : MonoBehaviour
 {
     [SerializeField] private QuestManager questManager;
-    
+
     // Start a quest programmatically
     public void StartQuest(QuestAsset quest)
     {
@@ -257,13 +259,13 @@ public class QuestController : MonoBehaviour
             Debug.Log($"Started quest: {quest.DisplayName}");
         }
     }
-    
+
     // Check quest status
     public bool IsQuestActive(string questId)
     {
         return questManager.ActiveQuests.Any(q => q.Definition.QuestId == questId);
     }
-    
+
     // Complete quest manually (for testing/cheat codes)
     public void CompleteQuest(string questId)
     {
@@ -273,16 +275,16 @@ public class QuestController : MonoBehaviour
             questManager.CompleteQuest(quest);
         }
     }
-    
+
     // Get quest progress
     public float GetQuestProgress(string questId)
     {
         var quest = questManager.ActiveQuests.FirstOrDefault(q => q.Definition.QuestId == questId);
         if (quest == null) return 0f;
-        
+
         var completedObjectives = quest.GetObjectiveStates().Count(obj => obj.Status == ObjectiveStatus.Completed);
         var totalObjectives = quest.GetObjectiveStates().Count(obj => !obj.Definition.IsOptional);
-        
+
         return totalObjectives > 0 ? (float)completedObjectives / totalObjectives : 0f;
     }
 }
@@ -297,67 +299,58 @@ public class QuestController : MonoBehaviour
 [CreateAssetMenu(menuName = "Quests/Conditions/Enemy Killed")]
 public class EnemyKilledConditionAsset : ConditionAsset
 {
+    [SerializeField] private EnemyKilledScriptableEvent enemyKilledEvent;
     [SerializeField] private string enemyType;
     [SerializeField] private int requiredKills = 1;
-    
+
     public override IConditionInstance CreateInstance()
     {
-        return new EnemyKilledConditionInstance(enemyType, requiredKills);
+        return new EnemyKilledConditionInstance(enemyKilledEvent, enemyType, requiredKills);
     }
 }
 
-// 2. Create the instance class
-public class EnemyKilledConditionInstance : IConditionInstance
+// 2. Create the instance class. EventDrivenConditionBase registers with the
+//    event asset on Bind and unregisters on Unbind.
+public class EnemyKilledConditionInstance : EventDrivenConditionBase<EnemyKilledEvent>
 {
     private readonly string _enemyType;
     private readonly int _requiredKills;
     private int _currentKills;
-    private Action _onChanged;
 
-    public bool IsMet => _currentKills >= _requiredKills;
+    public override bool IsMet => _currentKills >= _requiredKills;
 
-    public EnemyKilledConditionInstance(string enemyType, int requiredKills)
+    public EnemyKilledConditionInstance(ScriptableEvent<EnemyKilledEvent> enemyKilledEvent, string enemyType, int requiredKills)
+        : base(enemyKilledEvent)
     {
         _enemyType = enemyType;
         _requiredKills = requiredKills;
     }
 
-    public void Bind(EventManager eventManager, QuestContext context, Action onChanged)
+    protected override void HandleEvent(EnemyKilledEvent evt)
     {
-        _onChanged = onChanged;
-        eventManager.Subscribe<EnemyKilledEvent>(OnEnemyKilled);
-    }
-
-    public void Unbind(EventManager eventManager, QuestContext context)
-    {
-        eventManager.Unsubscribe<EnemyKilledEvent>(OnEnemyKilled);
-    }
-
-    private void OnEnemyKilled(EnemyKilledEvent evt)
-    {
-        if (evt.EnemyType == _enemyType)
+        if (evt.EnemyType == _enemyType && _currentKills < _requiredKills)
         {
             _currentKills++;
-            if (_currentKills <= _requiredKills)
-            {
-                _onChanged?.Invoke();
-            }
+            NotifyChanged();
         }
     }
 }
 
-// 3. Create the corresponding event
-public class EnemyKilledEvent
+// 3. Create the event payload and its event asset type
+public sealed class EnemyKilledEvent
 {
     public string EnemyType { get; }
     public Vector3 Position { get; }
-    
+
     public EnemyKilledEvent(string enemyType, Vector3 position)
     {
         EnemyType = enemyType;
         Position = position;
     }
 }
+
+[CreateAssetMenu(menuName = "Quests/Events/Enemy Killed")]
+public sealed class EnemyKilledScriptableEvent : ScriptableEvent<EnemyKilledEvent> { }
 ```
 
 ### Creating Polling Conditions
@@ -369,7 +362,7 @@ public class PlayerDistanceConditionAsset : ConditionAsset
 {
     [SerializeField] private Vector3 targetPosition;
     [SerializeField] private float requiredDistance = 5f;
-    
+
     public override IConditionInstance CreateInstance()
     {
         return new PlayerDistanceConditionInstance(targetPosition, requiredDistance);
@@ -391,12 +384,12 @@ public class PlayerDistanceConditionInstance : IConditionInstance, IPollingCondi
         _requiredDistance = requiredDistance;
     }
 
-    public void Bind(EventManager eventManager, QuestContext context, Action onChanged)
+    public void Bind(QuestContext context, Action onChanged)
     {
         _onChanged = onChanged;
     }
 
-    public void Unbind(EventManager eventManager, QuestContext context)
+    public void Unbind(QuestContext context)
     {
         _onChanged = null;
     }
@@ -404,10 +397,10 @@ public class PlayerDistanceConditionInstance : IConditionInstance, IPollingCondi
     public void Refresh(QuestContext context, Action onChanged)
     {
         if (context.Player == null) return;
-        
+
         float distance = Vector3.Distance(context.Player.position, _targetPosition);
         bool newMet = distance <= _requiredDistance;
-        
+
         if (newMet != _isMet)
         {
             _isMet = newMet;
@@ -431,14 +424,14 @@ public class QuestUI : MonoBehaviour
     [SerializeField] private QuestManager questManager;
     [SerializeField] private Transform questContainer;
     [SerializeField] private GameObject questItemPrefab;
-    
+
     void Start()
     {
         questManager.OnQuestCompleted += OnQuestCompleted;
         questManager.OnObjectiveStatusChanged += OnObjectiveChanged;
         RefreshUI();
     }
-    
+
     void RefreshUI()
     {
         // Clear existing UI elements
@@ -446,34 +439,34 @@ public class QuestUI : MonoBehaviour
         {
             Destroy(child.gameObject);
         }
-        
+
         // Create UI elements for active quests
         foreach (var questState in questManager.ActiveQuests)
         {
             CreateQuestUI(questState);
         }
     }
-    
+
     void CreateQuestUI(QuestState questState)
     {
         GameObject questItem = Instantiate(questItemPrefab, questContainer);
         var questDisplay = questItem.GetComponent<QuestDisplay>();
         questDisplay.Setup(questState);
     }
-    
+
     void OnQuestCompleted(QuestState questState)
     {
         // Show completion notification
         ShowNotification($"Quest Completed: {questState.Definition.DisplayName}");
         RefreshUI();
     }
-    
+
     void OnObjectiveChanged(ObjectiveState objectiveState)
     {
         // Update objective progress in UI
         RefreshUI();
     }
-    
+
     void ShowNotification(string message)
     {
         // Implement notification system
@@ -487,18 +480,18 @@ public class QuestDisplay : MonoBehaviour
     [SerializeField] private Text questDescription;
     [SerializeField] private Transform objectiveContainer;
     [SerializeField] private GameObject objectivePrefab;
-    
+
     public void Setup(QuestState questState)
     {
         questTitle.text = questState.Definition.DisplayName;
         questDescription.text = questState.Definition.Description;
-        
+
         // Clear existing objectives
         foreach (Transform child in objectiveContainer)
         {
             Destroy(child.gameObject);
         }
-        
+
         // Create objective UI elements
         foreach (var objectiveState in questState.GetObjectiveStates())
         {
@@ -523,13 +516,13 @@ public interface IQuestInventoryService
 public class InventoryService : MonoBehaviour, IQuestInventoryService
 {
     [SerializeField] private List<InventoryItem> items = new List<InventoryItem>();
-    
+
     public int GetItemCount(string itemId)
     {
         var item = items.FirstOrDefault(i => i.itemId == itemId);
         return item?.count ?? 0;
     }
-    
+
     public bool HasItem(string itemId)
     {
         return GetItemCount(itemId) > 0;
@@ -540,14 +533,14 @@ public class InventoryService : MonoBehaviour, IQuestInventoryService
 public class CustomQuestPlayerRef : QuestPlayerRef
 {
     [SerializeField] private InventoryService inventoryService;
-    
+
     public override QuestContext BuildContext()
     {
         var context = base.BuildContext();
-        
+
         // Add custom services
         var inventoryContextService = new QuestInventoryContextService(inventoryService);
-        
+
         return new QuestContext(
             context.Player,
             inventoryContextService,
@@ -638,42 +631,42 @@ public class QuestDebugger : MonoBehaviour
 {
     [SerializeField] private QuestManager questManager;
     [SerializeField] private bool enableDebugUI = true;
-    
+
     void OnGUI()
     {
         if (!enableDebugUI) return;
-        
+
         GUILayout.BeginArea(new Rect(10, 10, 300, Screen.height - 20));
         GUILayout.Label("Quest Debugger", GUI.skin.box);
-        
+
         foreach (var questState in questManager.ActiveQuests)
         {
             GUILayout.BeginVertical(GUI.skin.box);
             GUILayout.Label($"Quest: {questState.Definition.DisplayName}");
             GUILayout.Label($"Status: {questState.Status}");
-            
+
             if (GUILayout.Button("Complete Quest"))
             {
                 questManager.CompleteQuest(questState);
             }
-            
+
             if (GUILayout.Button("Fail Quest"))
             {
                 questManager.FailQuest(questState);
             }
-            
+
             // Show objectives
             foreach (var obj in questState.GetObjectiveStates())
             {
                 GUILayout.Label($"  • {obj.Definition.DisplayName}: {obj.Status}");
             }
-            
+
             GUILayout.EndVertical();
         }
-        
+
         GUILayout.EndArea();
     }
-    
+
     [ContextMenu("Complete All Active Quests")]
     void CompleteAllQuests()
     {
@@ -682,14 +675,14 @@ public class QuestDebugger : MonoBehaviour
             questManager.CompleteQuest(quest);
         }
     }
-    
+
     [ContextMenu("Trigger Test Events")]
     void TriggerTestEvents()
     {
-        // Useful for testing
-        EventManager.Instance.Raise(new ItemCollectedEvent("test_item", 1));
-        EventManager.Instance.Raise(new AreaEnteredEvent("test_area"));
-        EventManager.Instance.Raise(new FlagChangedEvent("test_flag", true));
+        // Useful for testing (fields hold the same event assets the conditions use)
+        itemCollectedEvent.Raise(new ItemCollectedEvent("test_item", 1));
+        areaEnteredEvent.Raise(new AreaEnteredEvent("test_area"));
+        flagChangedEvent.Raise(new FlagChangedEvent("test_flag", true));
     }
 }
 ```
@@ -762,7 +755,7 @@ DynamicBox.Quest.Tests.TestValidation.ValidateAllComponents();
 ```
 Game Event (ItemCollected)
     ↓
-EventManager.Raise()
+ItemCollectedScriptableEvent.Raise()
     ↓
 ConditionInstance.HandleEvent()
     ↓
@@ -803,8 +796,8 @@ OnQuestCompleted event
 
 - **Unity**: 2021.3 or later
 - **C#**: .NET Standard 2.1 compatible
-- **Dependencies**: 
-  - [DynamicBox EventManagement](https://github.com/mechaniqe/event-management) (automatically installed via UPM)
+- **Dependencies**:
+  - Star Stone Studio Events (`com.starstonestudio.events`, embedded package providing `ScriptableEvent<T>`)
 
 ## Performance Considerations
 
@@ -823,12 +816,10 @@ public class QuestTriggerSystem : MonoBehaviour
 {
     [SerializeField] private QuestManager questManager;
     [SerializeField] private QuestAsset[] levelQuests;
-    
-    void Start()
-    {
-        EventManager.Instance.Subscribe<LevelStartedEvent>(OnLevelStarted);
-        EventManager.Instance.Subscribe<PlayerLevelUpEvent>(OnPlayerLevelUp);
-    }
+    [SerializeField] private LevelStartedScriptableEvent levelStartedEvent;
+
+    void OnEnable() => levelStartedEvent.Register(OnLevelStarted);
+    void OnDisable() => levelStartedEvent.Unregister(OnLevelStarted);
     
     void OnLevelStarted(LevelStartedEvent evt)
     {
@@ -852,20 +843,20 @@ public class QuestChainManager : MonoBehaviour
         public QuestAsset currentQuest;
         public QuestAsset nextQuest;
     }
-    
+
     [SerializeField] private QuestManager questManager;
     [SerializeField] private QuestChain[] questChains;
-    
+
     void Start()
     {
         questManager.OnQuestCompleted += OnQuestCompleted;
     }
-    
+
     void OnQuestCompleted(QuestState completedQuest)
     {
-        var chain = questChains.FirstOrDefault(c => 
+        var chain = questChains.FirstOrDefault(c =>
             c.currentQuest.QuestId == completedQuest.Definition.QuestId);
-            
+
         if (chain.nextQuest != null)
         {
             questManager.StartQuest(chain.nextQuest);
@@ -888,11 +879,11 @@ public class QuestSaveData
 public class QuestPersistence : MonoBehaviour
 {
     [SerializeField] private QuestManager questManager;
-    
+
     public void SaveQuestProgress()
     {
         var saveData = new List<QuestSaveData>();
-        
+
         foreach (var quest in questManager.ActiveQuests)
         {
             var data = new QuestSaveData
@@ -901,28 +892,28 @@ public class QuestPersistence : MonoBehaviour
                 status = quest.Status,
                 objectiveStatuses = new Dictionary<string, ObjectiveStatus>()
             };
-            
+
             foreach (var obj in quest.GetObjectiveStates())
             {
                 data.objectiveStatuses[obj.Definition.ObjectiveId] = obj.Status;
             }
-            
+
             saveData.Add(data);
         }
-        
+
         // Save to PlayerPrefs, file, or your persistence system
         var json = JsonUtility.ToJson(new Serializable<List<QuestSaveData>>(saveData));
         PlayerPrefs.SetString("QuestProgress", json);
     }
-    
+
     public void LoadQuestProgress()
     {
         // Load and restore quest states
         var json = PlayerPrefs.GetString("QuestProgress", "");
         if (string.IsNullOrEmpty(json)) return;
-        
+
         var saveData = JsonUtility.FromJson<Serializable<List<QuestSaveData>>>(json).target;
-        
+
         // Restore quest states...
         // Note: Full implementation requires additional quest restoration logic
     }
@@ -934,7 +925,7 @@ public class QuestPersistence : MonoBehaviour
 ### Current Limitations (v0.1)
 - **No Built-in Persistence**: Save/load system requires custom implementation (examples provided)
 - **Single Player Focus**: Multi-actor/party support not included (planned for future)
-- **EventManager Dependency**: Requires DynamicBox EventManagement package
+- **Events Dependency**: Requires the Star Stone Studio Events package (`ScriptableEvent<T>`)
 
 ### Version 0.2.0 (Planned)
 - 🔄 Enhanced event system integration
@@ -946,7 +937,7 @@ public class QuestPersistence : MonoBehaviour
 ### Version 0.3.0+ (Future)
 - 🚀 Performance optimizations for large-scale games
 - 💾 Official save/load system package
-- 👥 Multi-actor and party quest support  
+- 👥 Multi-actor and party quest support
 - 🎮 Visual quest graph editor
 - 🌐 Network synchronization support
 
@@ -969,34 +960,34 @@ We welcome contributions! Priority areas:
 
 ### FAQ
 
-**Q: How do I create a quest that requires collecting multiple different items?**  
+**Q: How do I create a quest that requires collecting multiple different items?**
 A: Use a ConditionGroup with AND logic containing multiple ItemCollectedConditions.
 
-**Q: Can quests be saved and loaded?**  
+**Q: Can quests be saved and loaded?**
 A: The core system doesn't include persistence, but examples show how to implement save/load with your preferred method.
 
-**Q: How do I make a quest available only after reaching a certain level?**  
+**Q: How do I make a quest available only after reaching a certain level?**
 A: Create a custom condition that checks player level, or use prerequisites on quest objectives.
 
-**Q: Can I create branching quest storylines?**  
+**Q: Can I create branching quest storylines?**
 A: Yes! Use quest chains with conditional triggers based on previous quest completion outcomes.
 
-**Q: How do I optimize performance for many quests?**  
+**Q: How do I optimize performance for many quests?**
 A: The system uses event-driven architecture and dirty queue patterns. Our tests validate performance with 1000+ quests.
 
 ### Troubleshooting
 
-**Quest not progressing**: Check that events are being published correctly using `EventManager.Instance.Raise()`  
-**Conditions not evaluating**: Verify condition binding in the QuestDebugger window  
-**UI not updating**: Ensure you're subscribed to `OnObjectiveStatusChanged` events  
+**Quest not progressing**: Check that the condition asset has its event asset assigned and that game code raises that same asset (a missing assignment logs a warning on bind)
+**Conditions not evaluating**: Verify condition binding in the QuestDebugger window
+**UI not updating**: Ensure you're subscribed to `OnObjectiveStatusChanged` events
 **Performance issues**: Use the profiler to check event frequency and consider polling rate adjustments
 
 ## License & Credits
 
 **License**: MIT License – see [LICENSE](LICENSE) for full terms
 
-**Created by**: DynamicBox Team  
-**Maintainer**: [Your Name/Studio]  
+**Created by**: DynamicBox Team
+**Maintainer**: [Your Name/Studio]
 **Contributors**: See [Contributors](https://github.com/mechaniqe/unity-quest-core/contributors)
 
 ### Acknowledgments
@@ -1013,7 +1004,7 @@ We welcome contributions from the community! Here's how to get started:
 - Include Unity version, package version, and reproduction steps
 - Attach minimal reproduction project if possible
 
-### 🚀 Feature Requests  
+### 🚀 Feature Requests
 - Check existing issues first
 - Describe the use case and benefit
 - Consider implementing and submitting a PR
@@ -1043,9 +1034,9 @@ We welcome contributions from the community! Here's how to get started:
 
 ---
 
-**Version**: 0.8.2  
-**Last Updated**: December 11, 2025  
-**Unity Compatibility**: 2021.3 LTS+  
+**Version**: 0.8.2
+**Last Updated**: December 11, 2025
+**Unity Compatibility**: 2021.3 LTS+
 **Status**: Production Ready ✅
 
 *"Making quest systems accessible, extensible, and delightful to work with."*

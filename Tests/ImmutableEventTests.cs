@@ -1,6 +1,6 @@
 #nullable enable
 using System;
-using DynamicBox.Quest.GameEvents;
+using DynamicBox.Quest.Core.Events;
 using UnityEngine;
 
 namespace DynamicBox.Quest.Tests

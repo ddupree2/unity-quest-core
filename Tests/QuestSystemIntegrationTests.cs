@@ -4,8 +4,7 @@ using UnityEngine;
 using DynamicBox.Quest.Core;
 using DynamicBox.Quest.Core.Conditions;
 using DynamicBox.Quest.Core.Services;
-using DynamicBox.Quest.GameEvents;
-using DynamicBox.EventManagement;
+using DynamicBox.Quest.Core.Events;
 using System.Linq;
 
 namespace DynamicBox.Quest.Tests
@@ -237,10 +236,9 @@ namespace DynamicBox.Quest.Tests
             var questManager = CreateQuestManager();
             try
             {
-                var eventManager = EventManager.Instance;
 
                 // Create quest with event-driven condition
-                var itemCondition = ScriptableObject.CreateInstance<ItemCollectedConditionAsset>();
+                var itemCondition = TestEvents.Wire(ScriptableObject.CreateInstance<ItemCollectedConditionAsset>());
                 var conditionIdField = typeof(ConditionAsset).GetField("conditionId",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 var requiredCountField = typeof(ItemCollectedConditionAsset).GetField("requiredCount",
@@ -264,7 +262,7 @@ namespace DynamicBox.Quest.Tests
                 questManager.StartQuest(quest);
 
                 // Publish event to complete quest
-                eventManager.Raise(new ItemCollectedEvent("integration_test_item", 1));
+                TestEvents.Items.Raise(new ItemCollectedEvent("integration_test_item", 1));
 
                 // Wait a frame for event processing
                 yield return null;
@@ -288,7 +286,6 @@ namespace DynamicBox.Quest.Tests
             var questManager = CreateQuestManager();
             try
             {
-                var eventManager = EventManager.Instance;
 
                 // Create multiple quests with different requirements
                 var quest1 = CreateTestQuestWithItemCondition("quest1", "item1");
@@ -307,13 +304,13 @@ namespace DynamicBox.Quest.Tests
                     throw new Exception("QuestManager should have 3 active quests");
 
                 // Complete quests in different order
-                eventManager.Raise(new ItemCollectedEvent("item2", 1)); // Complete quest2
+                TestEvents.Items.Raise(new ItemCollectedEvent("item2", 1)); // Complete quest2
                 yield return null;
 
-                eventManager.Raise(new ItemCollectedEvent("item1", 1)); // Complete quest1
+                TestEvents.Items.Raise(new ItemCollectedEvent("item1", 1)); // Complete quest1
                 yield return null;
 
-                eventManager.Raise(new ItemCollectedEvent("item3", 1)); // Complete quest3
+                TestEvents.Items.Raise(new ItemCollectedEvent("item3", 1)); // Complete quest3
                 yield return null;
 
                 if (completedCount != 3)
@@ -338,7 +335,6 @@ namespace DynamicBox.Quest.Tests
             var questManager = CreateQuestManager();
             try
             {
-                var eventManager = EventManager.Instance;
 
                 // Create quest with prerequisites
                 var obj1 = new ObjectiveBuilder()
@@ -367,18 +363,18 @@ namespace DynamicBox.Quest.Tests
                 var questState = questManager.StartQuest(quest);
 
                 // Try to complete second objective first (should not work due to prerequisites)
-                eventManager.Raise(new ItemCollectedEvent("treasure", 1));
+                TestEvents.Items.Raise(new ItemCollectedEvent("treasure", 1));
                 yield return null;
 
                 if (questCompleted)
                     throw new Exception("Quest should not complete without prerequisites");
 
                 // Complete first objective
-                eventManager.Raise(new ItemCollectedEvent("key", 1));
+                TestEvents.Items.Raise(new ItemCollectedEvent("key", 1));
                 yield return null;
 
                 // Now complete second objective
-                eventManager.Raise(new ItemCollectedEvent("treasure", 1));
+                TestEvents.Items.Raise(new ItemCollectedEvent("treasure", 1));
                 yield return null;
 
                 if (!questCompleted)
@@ -451,7 +447,6 @@ namespace DynamicBox.Quest.Tests
             var questManager = CreateQuestManager();
             try
             {
-                var eventManager = EventManager.Instance;
 
                 // Create a complex quest with multiple condition types
                 var itemCondition = CreateItemCondition("artifact");
@@ -488,19 +483,19 @@ namespace DynamicBox.Quest.Tests
                 questManager.StartQuest(quest);
 
                 // Complete conditions in sequence
-                eventManager.Raise(new ItemCollectedEvent("artifact", 1));
+                TestEvents.Items.Raise(new ItemCollectedEvent("artifact", 1));
                 yield return null;
 
                 if (questCompleted)
                     throw new Exception("Quest should not complete with only 1/3 conditions");
 
-                eventManager.Raise(new AreaEnteredEvent("ancient_temple"));
+                TestEvents.Areas.Raise(new AreaEnteredEvent("ancient_temple"));
                 yield return null;
 
                 if (questCompleted)
                     throw new Exception("Quest should not complete with only 2/3 conditions");
 
-                eventManager.Raise(new FlagChangedEvent("ritual_completed", true));
+                TestEvents.Flags.Raise(new FlagChangedEvent("ritual_completed", true));
                 yield return null;
 
                 if (!questCompleted)
@@ -531,7 +526,7 @@ namespace DynamicBox.Quest.Tests
                     var questState = questManager.StartQuest(quest);
                     
                     // Complete quest immediately
-                    EventManager.Instance.Raise(new ItemCollectedEvent($"item_{i}", 1));
+                    TestEvents.Items.Raise(new ItemCollectedEvent($"item_{i}", 1));
                     yield return null;
                 }
 
@@ -566,7 +561,6 @@ namespace DynamicBox.Quest.Tests
             var questManager = CreateQuestManager();
             try
             {
-                var eventManager = EventManager.Instance;
                 var startTime = Time.realtimeSinceStartup;
 
                 // Create many quests simultaneously
@@ -581,7 +575,7 @@ namespace DynamicBox.Quest.Tests
                     throw new Exception($"Expected {questCount} active quests");
 
                 // Complete all quests with single event
-                eventManager.Raise(new ItemCollectedEvent("shared_item", 1));
+                TestEvents.Items.Raise(new ItemCollectedEvent("shared_item", 1));
 
                 // Wait for all quests to complete
                 var timeout = 2.0f;
@@ -680,7 +674,7 @@ namespace DynamicBox.Quest.Tests
 
         private ItemCollectedConditionAsset CreateItemCondition(string itemId)
         {
-            var itemCondition = ScriptableObject.CreateInstance<ItemCollectedConditionAsset>();
+            var itemCondition = TestEvents.Wire(ScriptableObject.CreateInstance<ItemCollectedConditionAsset>());
             var conditionIdField = typeof(ConditionAsset).GetField("conditionId",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var requiredCountField = typeof(ItemCollectedConditionAsset).GetField("requiredCount",
@@ -692,7 +686,7 @@ namespace DynamicBox.Quest.Tests
 
         private AreaEnteredConditionAsset CreateAreaCondition(string areaId)
         {
-            var areaCondition = ScriptableObject.CreateInstance<AreaEnteredConditionAsset>();
+            var areaCondition = TestEvents.Wire(ScriptableObject.CreateInstance<AreaEnteredConditionAsset>());
             var conditionIdField = typeof(ConditionAsset).GetField("conditionId",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             conditionIdField?.SetValue(areaCondition, areaId);
@@ -701,7 +695,7 @@ namespace DynamicBox.Quest.Tests
 
         private CustomFlagConditionAsset CreateFlagCondition(string flagId, bool expectedValue)
         {
-            var flagCondition = ScriptableObject.CreateInstance<CustomFlagConditionAsset>();
+            var flagCondition = TestEvents.Wire(ScriptableObject.CreateInstance<CustomFlagConditionAsset>());
             var conditionIdField = typeof(ConditionAsset).GetField("conditionId",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var expectedValueField = typeof(CustomFlagConditionAsset).GetField("_expectedValue",

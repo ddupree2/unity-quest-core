@@ -1,5 +1,6 @@
 #nullable enable
-using DynamicBox.Quest.GameEvents;
+using DynamicBox.Quest.Core.Events;
+using StarStoneStudio.Scriptables;
 using UnityEngine;
 
 namespace DynamicBox.Quest.Core.Conditions
@@ -16,7 +17,8 @@ namespace DynamicBox.Quest.Core.Conditions
 
         public override bool IsMet => _isCompleted;
 
-        public AreaEnteredConditionInstance(string areaId, string? areaDescription = null)
+        public AreaEnteredConditionInstance(ScriptableEvent<AreaEnteredEvent>? areaEnteredEvent, string areaId, string? areaDescription = null)
+            : base(areaEnteredEvent)
         {
             _areaId = areaId;
             _areaDescription = areaDescription;

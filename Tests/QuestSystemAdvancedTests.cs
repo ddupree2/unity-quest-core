@@ -2,8 +2,7 @@ using System;
 using DynamicBox.Quest.Core;
 using DynamicBox.Quest.Core.Conditions;
 using DynamicBox.Quest.Core.Services;
-using DynamicBox.Quest.GameEvents;
-using DynamicBox.EventManagement;
+using DynamicBox.Quest.Core.Events;
 using UnityEngine;
 using System.Reflection;
 
@@ -189,12 +188,12 @@ namespace DynamicBox.Quest.Tests
                 throw new Exception("QuestContext should be created with null services");
 
             // Test that conditions can handle null service context
-            var itemCondition = new ItemCollectedConditionInstance("test_item", 1);
+            var itemCondition = new ItemCollectedConditionInstance(TestEvents.Items, "test_item", 1);
             
             try
             {
                 // This should not crash even with null services in context
-                itemCondition.Bind(DynamicBox.EventManagement.EventManager.Instance, context, () => { });
+                itemCondition.Bind(context, () => { });
                 Debug.Log("   ✓ Condition binding handles null services gracefully");
             }
             catch (Exception ex)
@@ -424,7 +423,7 @@ namespace DynamicBox.Quest.Tests
 
             // Test binding performance
             var startTime = DateTime.Now;
-            currentGroup.Bind(DynamicBox.EventManagement.EventManager.Instance, new QuestContext(null, null, null), () => { });
+            currentGroup.Bind(new QuestContext(null, null, null), () => { });
             var bindTime = DateTime.Now - startTime;
 
             // Test evaluation performance
@@ -557,7 +556,7 @@ namespace DynamicBox.Quest.Tests
                     throw new Exception("obj2 should wait for its prerequisite");
 
                 flagService.SetFlag("seq_flag_a", true);
-                EventManager.Instance.Raise(new FlagChangedEvent("seq_flag_a", true));
+                TestEvents.Flags.Raise(new FlagChangedEvent("seq_flag_a", true));
 
                 // Previously threw InvalidOperationException from inside the dirty set iteration
                 questManager.ProcessPendingEvaluations();
@@ -584,7 +583,7 @@ namespace DynamicBox.Quest.Tests
 
         private static CustomFlagConditionAsset CreateFlagCondition(string flagId)
         {
-            var condition = ScriptableObject.CreateInstance<CustomFlagConditionAsset>();
+            var condition = TestEvents.Wire(ScriptableObject.CreateInstance<CustomFlagConditionAsset>());
             var idField = typeof(ConditionAsset).GetField("conditionId",
                 BindingFlags.NonPublic | BindingFlags.Instance);
             idField?.SetValue(condition, flagId);
