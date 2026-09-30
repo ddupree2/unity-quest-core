@@ -22,6 +22,9 @@ namespace DynamicBox.Quest.Core
 
         private QuestLog? _log;
         private QuestContext? _context;
+
+        /// <summary>The services this manager's conditions use (for editor tooling such as the Quest Debugger).</summary>
+        internal QuestContext? Context => _context;
         private ConditionBindingService? _bindingService;
         private ObjectiveEvaluator? _evaluator;
         private DirtyQueueProcessor? _processor;

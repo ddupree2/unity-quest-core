@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Quest Debugger window**: Active / History / Flags tabs; condition progress; Stop, Restart, Complete, Fail; forced start of any QuestAsset; flag toggles and counters. Button actions run after drawing (the old Complete/Fail buttons changed the active list mid-loop)
+- `IQuestFlagServiceInspectable` (`GetAllFlags` / `GetAllCounters`), implemented by `DefaultFlagService`, so tools can list flags
+- `QuestManager.Context` (internal) for editor tooling
 - `QuestManager.OnQuestStarted` (raised by `StartQuest`, not by restoring a save)
 - `ObjectiveState.CompletionProgress`: read-only progress of the completion condition for UI; the condition instance stays internal
 - **Completed/failed quest history**: `QuestLog.Completed` / `Failed` and `QuestManager.CompletedQuests`, `FailedQuests`, `IsActive`, `IsCompleted`, `IsFailed`

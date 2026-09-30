@@ -8,7 +8,7 @@ namespace DynamicBox.Quest.Core.Services
     /// Default implementation of IQuestFlagService using in-memory storage.
     /// For production, extend this to integrate with your save/load system.
     /// </summary>
-    public class DefaultFlagService : QuestFlagServiceBase
+    public class DefaultFlagService : QuestFlagServiceBase, IQuestFlagServiceInspectable
     {
         private readonly Dictionary<string, bool> _flags = new();
         private readonly Dictionary<string, int> _counters = new();
