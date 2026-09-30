@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Globalization;
 using UnityEngine;
 
 namespace DynamicBox.Quest.Core.Conditions
@@ -9,7 +10,7 @@ namespace DynamicBox.Quest.Core.Conditions
     /// Uses IQuestTimeService for time tracking instead of Unity's Time.deltaTime.
     /// Implements progress reporting for UI integration.
     /// </summary>
-    public sealed class TimeElapsedConditionInstance : IConditionInstance, IPollingConditionInstance, IProgressReportingCondition
+    public sealed class TimeElapsedConditionInstance : IConditionInstance, IPollingConditionInstance, IProgressReportingCondition, ISaveableCondition
     {
         private readonly float _requiredSeconds;
         private float _elapsedTime;
@@ -40,7 +41,8 @@ namespace DynamicBox.Quest.Core.Conditions
         public void Bind(QuestContext context, Action onChanged)
         {
             _onChanged = onChanged;
-            _elapsedTime = 0f;
+            // Elapsed time is not reset here: a fresh instance starts at 0, and a restored one
+            // must keep the time it had when the game was saved.
             _lastRefreshTime = context?.TimeService?.TotalGameTime ?? 0f;
             _isInitialized = true;
 
@@ -78,6 +80,14 @@ namespace DynamicBox.Quest.Core.Conditions
             {
                 onChanged?.Invoke();
             }
+        }
+
+        public string CaptureState() => _elapsedTime.ToString("R", CultureInfo.InvariantCulture);
+
+        public void RestoreState(string state)
+        {
+            if (float.TryParse(state, NumberStyles.Float, CultureInfo.InvariantCulture, out float elapsed))
+                _elapsedTime = Mathf.Max(0f, elapsed);
         }
 
         /// <summary>

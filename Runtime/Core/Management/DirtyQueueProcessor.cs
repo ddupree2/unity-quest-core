@@ -92,6 +92,14 @@ namespace DynamicBox.Quest.Core
         }
 
         /// <summary>
+        /// Drops all pending evaluations (used when the quest log is cleared or replaced by a load).
+        /// </summary>
+        public void Clear()
+        {
+            _dirtySet.Clear();
+        }
+
+        /// <summary>
         /// Gets the current number of dirty objectives pending evaluation.
         /// </summary>
         public int DirtyCount => _dirtySet.Count;

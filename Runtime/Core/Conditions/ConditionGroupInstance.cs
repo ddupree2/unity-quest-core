@@ -10,7 +10,7 @@ namespace DynamicBox.Quest.Core
     /// Composite condition that combines multiple child conditions with AND/OR logic.
     /// Supports progress reporting by aggregating child progress.
     /// </summary>
-    public sealed class ConditionGroupInstance : IConditionInstance, IPollingConditionInstance, IProgressReportingCondition
+    public sealed class ConditionGroupInstance : IConditionInstance, IPollingConditionInstance, IProgressReportingCondition, ISaveableCondition
     {
         private readonly ConditionOperator _operator;
         private readonly List<IConditionInstance> _children;
@@ -83,6 +83,42 @@ namespace DynamicBox.Quest.Core
         {
             foreach (var child in _pollingChildren)
                 child.Refresh(context, ChildChanged);
+        }
+
+        /// <summary>
+        /// Captures each child's state in child order. Children that aren't saveable get an empty entry.
+        /// </summary>
+        public string CaptureState()
+        {
+            var data = new GroupState();
+            foreach (var child in _children)
+                data.Children.Add(child is ISaveableCondition saveable ? saveable.CaptureState() : string.Empty);
+            return JsonUtility.ToJson(data);
+        }
+
+        public void RestoreState(string state)
+        {
+            if (string.IsNullOrEmpty(state))
+                return;
+
+            var data = JsonUtility.FromJson<GroupState>(state);
+            if (data?.Children == null)
+                return;
+
+            // Children are matched by position; a group edited after saving restores what still lines up
+            for (int i = 0; i < _children.Count && i < data.Children.Count; i++)
+            {
+                if (_children[i] is ISaveableCondition saveable && !string.IsNullOrEmpty(data.Children[i]))
+                    saveable.RestoreState(data.Children[i]);
+            }
+
+            Recompute();
+        }
+
+        [Serializable]
+        private sealed class GroupState
+        {
+            public List<string> Children = new();
         }
 
         private void ChildChanged()

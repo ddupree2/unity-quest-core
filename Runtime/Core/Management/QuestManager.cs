@@ -86,6 +86,12 @@ namespace DynamicBox.Quest.Core
         /// </summary>
         public event Action<ObjectiveState, IConditionInstance, bool>? OnConditionStatusChanged;
 
+        /// <summary>
+        /// Event raised after <see cref="RestoreSaveData"/> or <see cref="ClearAll"/> replaced the quest log,
+        /// so UI can rebuild. No completed/failed/status events fire for restored quests.
+        /// </summary>
+        public event Action? OnQuestLogRestored;
+
         private void Awake()
         {
             if (playerRef == null)
@@ -259,6 +265,91 @@ namespace DynamicBox.Quest.Core
             eventHandler?.Invoke(questState);
             _bindingService!.UnbindQuest(questState);
             _log!.ArchiveQuest(questState);
+        }
+
+        /// <summary>
+        /// Stops and forgets every active quest and all quest history (new game, or a save with no quests).
+        /// </summary>
+        public void ClearAll()
+        {
+            ClearLog();
+            OnQuestLogRestored?.Invoke();
+        }
+
+        /// <summary>
+        /// Replaces the quest log with the quests in a save: active quests resume with their objective and
+        /// condition progress, completed/failed quests go back into history. Snapshots whose quest can't be
+        /// resolved are skipped with a warning.
+        /// </summary>
+        /// <param name="saveData">Save data captured by <see cref="CaptureSaveData"/>.</param>
+        /// <param name="resolveQuest">Maps a snapshot's QuestId to its QuestAsset, or null if unknown.</param>
+        public void RestoreSaveData(State.QuestSaveData saveData, Func<string, QuestAsset?> resolveQuest)
+        {
+            if (saveData == null)
+                throw new ArgumentNullException(nameof(saveData));
+            if (resolveQuest == null)
+                throw new ArgumentNullException(nameof(resolveQuest));
+
+            Debug.Assert(_log != null, "QuestManager._log should be initialized in Awake()");
+            Debug.Assert(_evaluator != null, "QuestManager._evaluator should be initialized in Awake()");
+
+            ClearLog();
+
+            foreach (var snapshot in saveData.Quests ?? new List<State.QuestStateSnapshot>())
+            {
+                if (snapshot == null || !snapshot.IsValid())
+                {
+                    Debug.LogWarning("Skipping an invalid quest snapshot while restoring.", this);
+                    continue;
+                }
+
+                var questAsset = resolveQuest(snapshot.QuestId);
+                if (questAsset == null)
+                {
+                    Debug.LogWarning($"No quest asset found for saved quest '{snapshot.QuestId}'; it was not restored.", this);
+                    continue;
+                }
+
+                QuestState state;
+                try
+                {
+                    state = State.QuestStateManager.RestoreFromSnapshot(snapshot, questAsset, _context!);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Failed to restore quest '{snapshot.QuestId}': {ex.Message}", this);
+                    continue;
+                }
+
+                _log!.AddRestored(state);
+
+                if (state.Status.IsTerminal())
+                    continue;
+
+                _evaluator!.BindRestoredQuest(state);
+
+                // Conditions may already be met (a flag set while the quest wasn't loaded);
+                // evaluate everything that's active on the next process.
+                foreach (var obj in state.GetObjectiveStates())
+                {
+                    if (obj.Status.IsActive())
+                        _processor!.MarkDirty(state, obj);
+                }
+            }
+
+            OnQuestLogRestored?.Invoke();
+        }
+
+        private void ClearLog()
+        {
+            Debug.Assert(_log != null, "QuestManager._log should be initialized in Awake()");
+            Debug.Assert(_bindingService != null, "QuestManager._bindingService should be initialized in Awake()");
+
+            foreach (var quest in _log!.Active)
+                _bindingService!.UnbindQuest(quest);
+
+            _processor!.Clear();
+            _log.Clear();
         }
 
         /// <summary>

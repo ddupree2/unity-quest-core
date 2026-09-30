@@ -103,6 +103,24 @@ namespace DynamicBox.Quest.Core
             }
         }
 
+        /// <summary>
+        /// Binds the conditions of objectives that are already InProgress (a quest restored from a save),
+        /// then activates any objectives whose prerequisites are now met.
+        /// </summary>
+        public void BindRestoredQuest(QuestState quest)
+        {
+            foreach (var obj in quest.GetObjectiveStates())
+            {
+                if (obj.Status == ObjectiveStatus.InProgress)
+                {
+                    var objective = obj;
+                    _bindingService.BindObjective(quest, objective, () => _onDirtyCallback?.Invoke(quest, objective));
+                }
+            }
+
+            ActivateReadyObjectives(quest);
+        }
+
         private QuestEvaluationResult CheckQuestCompletion(QuestState quest)
         {
             var allRequiredComplete = quest.GetObjectiveStates()

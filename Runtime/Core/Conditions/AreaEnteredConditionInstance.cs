@@ -9,7 +9,7 @@ namespace DynamicBox.Quest.Core.Conditions
     /// Condition instance that tracks area entry events.
     /// Uses EventDrivenConditionBase to reduce boilerplate.
     /// </summary>
-    public sealed class AreaEnteredConditionInstance : EventDrivenConditionBase<AreaEnteredEvent>
+    public sealed class AreaEnteredConditionInstance : EventDrivenConditionBase<AreaEnteredEvent>, ISaveableCondition
     {
         private readonly string _areaId;
         private readonly string? _areaDescription;
@@ -31,6 +31,13 @@ namespace DynamicBox.Quest.Core.Conditions
                 _isCompleted = true;
                 NotifyChanged();
             }
+        }
+
+        public string CaptureState() => _isCompleted ? "1" : "0";
+
+        public void RestoreState(string state)
+        {
+            _isCompleted = state == "1";
         }
 
         public override string ToString()

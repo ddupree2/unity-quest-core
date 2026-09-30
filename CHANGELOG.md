@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Ended quests keep their final `QuestState` (objective statuses included)
   - One outcome per quest: restarting a quest removes it from history, so the latest outcome wins; `StopQuest` records nothing
 - `QuestManager.CaptureSaveData()` snapshots active quests and history together
+- **Full save/restore**: `QuestManager.RestoreSaveData(QuestSaveData, Func<string, QuestAsset?>)` replaces the log with a save (active quests rebound and re-evaluated, history restored) and `ClearAll()`; both raise `OnQuestLogRestored`
+- `ISaveableCondition` (`CaptureState` / `RestoreState`) so condition progress survives a load; implemented by Item Collected, Area Entered, Time Elapsed and condition groups. `ObjectiveStatusEntry` gained `CompletionState` / `FailState`
 
 ### Changed
 - **Replaced DynamicBox EventManagement with ScriptableEvents** (breaking)
@@ -22,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Item Collected, Area Entered and Custom Flag condition assets gained an event asset field; condition instance constructors take the event asset first
 
 ### Fixed
+- `TimeElapsedConditionInstance.Bind` no longer resets elapsed time (a restored timer keeps its progress)
 - A quest that failed automatically left its other objectives bound to their events; failing now unbinds the whole quest
 - `DirtyQueueProcessor.ProcessAll` no longer throws "Collection was modified" when completing an objective activates a next objective whose condition is already met; chained objectives resolve in one call
 

@@ -55,6 +55,12 @@ namespace DynamicBox.Quest.Core.State
         
         [Tooltip("Current status of the objective")]
         public ObjectiveStatus Status;
+
+        [Tooltip("Saved progress of the completion condition (ISaveableCondition), or empty")]
+        public string CompletionState;
+
+        [Tooltip("Saved progress of the fail condition (ISaveableCondition), or empty")]
+        public string FailState;
     }
 
     /// <summary>

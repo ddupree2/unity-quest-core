@@ -1,4 +1,5 @@
 #nullable enable
+using System.Globalization;
 using DynamicBox.Quest.Core.Events;
 using StarStoneStudio.Scriptables;
 using UnityEngine;
@@ -9,7 +10,7 @@ namespace DynamicBox.Quest.Core.Conditions
     /// Condition that tracks item collection events and completes when required count is reached.
     /// Uses EventDrivenConditionBase to reduce boilerplate and implements progress reporting.
     /// </summary>
-    public sealed class ItemCollectedConditionInstance : EventDrivenConditionBase<ItemCollectedEvent>, IProgressReportingCondition
+    public sealed class ItemCollectedConditionInstance : EventDrivenConditionBase<ItemCollectedEvent>, IProgressReportingCondition, ISaveableCondition
     {
         private readonly string _itemId;
         private readonly int _requiredCount;
@@ -51,6 +52,14 @@ namespace DynamicBox.Quest.Core.Conditions
                 NotifyChanged(); // Progress update
             }
             // If already met and still met, no notification needed
+        }
+
+        public string CaptureState() => _currentCount.ToString(CultureInfo.InvariantCulture);
+
+        public void RestoreState(string state)
+        {
+            if (int.TryParse(state, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count))
+                _currentCount = count;
         }
     }
 }

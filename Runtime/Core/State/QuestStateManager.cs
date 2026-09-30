@@ -31,7 +31,9 @@ namespace DynamicBox.Quest.Core.State
                 snapshot.ObjectiveStatuses.Add(new ObjectiveStatusEntry
                 {
                     ObjectiveId = objectiveState.Definition.ObjectiveId,
-                    Status = objectiveState.Status
+                    Status = objectiveState.Status,
+                    CompletionState = CaptureConditionState(objectiveState.CompletionInstance),
+                    FailState = CaptureConditionState(objectiveState.FailInstance)
                 });
             }
 
@@ -83,13 +85,23 @@ namespace DynamicBox.Quest.Core.State
             var questState = new QuestState(questAsset);
             questState.SetStatus(snapshot.Status);
 
-            // Restore objective statuses
-            var objectiveStatusMap = snapshot.GetObjectiveStatusesDict();
+            // Restore objective statuses and condition progress. Condition state is restored
+            // before binding, so saved progress (e.g. 5/8 collected) is in place when the
+            // condition starts listening again.
+            var entries = new Dictionary<string, ObjectiveStatusEntry>();
+            foreach (var entry in snapshot.ObjectiveStatuses)
+            {
+                if (entry != null && !string.IsNullOrEmpty(entry.ObjectiveId))
+                    entries[entry.ObjectiveId] = entry;
+            }
+
             foreach (var objectiveState in questState.GetObjectiveStates())
             {
-                if (objectiveStatusMap.TryGetValue(objectiveState.Definition.ObjectiveId, out var status))
+                if (entries.TryGetValue(objectiveState.Definition.ObjectiveId, out var entry))
                 {
-                    objectiveState.SetStatus(status);
+                    objectiveState.SetStatus(entry.Status);
+                    RestoreConditionState(objectiveState.CompletionInstance, entry.CompletionState);
+                    RestoreConditionState(objectiveState.FailInstance, entry.FailState);
                 }
             }
 
@@ -139,6 +151,17 @@ namespace DynamicBox.Quest.Core.State
             }
 
             return restoredQuests;
+        }
+
+        private static string CaptureConditionState(IConditionInstance condition)
+        {
+            return condition is ISaveableCondition saveable ? saveable.CaptureState() : string.Empty;
+        }
+
+        private static void RestoreConditionState(IConditionInstance condition, string state)
+        {
+            if (condition is ISaveableCondition saveable && !string.IsNullOrEmpty(state))
+                saveable.RestoreState(state);
         }
 
         #region File I/O Helpers

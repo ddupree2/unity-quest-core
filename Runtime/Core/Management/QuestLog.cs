@@ -75,6 +75,33 @@ namespace DynamicBox.Quest.Core
             }
         }
 
+        /// <summary>
+        /// Adds a quest restored from a save: InProgress quests become active, Completed/Failed go to history.
+        /// </summary>
+        /// <param name="state">The restored quest state.</param>
+        public void AddRestored(QuestState state)
+        {
+            if (state.Status.IsTerminal())
+            {
+                ArchiveQuest(state);
+            }
+            else
+            {
+                RemoveFromHistory(state.Definition);
+                _active.Add(state);
+            }
+        }
+
+        /// <summary>
+        /// Forgets all active quests and history. Callers must unbind active quests first.
+        /// </summary>
+        public void Clear()
+        {
+            _active.Clear();
+            _completed.Clear();
+            _failed.Clear();
+        }
+
         public bool IsActive(QuestAsset quest) => Find(_active, quest) != null;
         public bool IsCompleted(QuestAsset quest) => Find(_completed, quest) != null;
         public bool IsFailed(QuestAsset quest) => Find(_failed, quest) != null;
