@@ -22,6 +22,12 @@ namespace DynamicBox.Quest.Core
         internal IConditionInstance? CompletionInstance { get; }
         internal IConditionInstance? FailInstance { get; }
 
+        /// <summary>
+        /// Progress of the completion condition (e.g. "3/8") for UI, or null if the condition
+        /// doesn't report progress. Read-only: the condition itself stays internal.
+        /// </summary>
+        public IProgressReportingCondition? CompletionProgress => CompletionInstance as IProgressReportingCondition;
+
         public ObjectiveState(ObjectiveAsset definition)
         {
             Definition = definition;

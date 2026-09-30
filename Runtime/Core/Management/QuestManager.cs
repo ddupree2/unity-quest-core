@@ -66,6 +66,11 @@ namespace DynamicBox.Quest.Core
         }
 
         /// <summary>
+        /// Event raised after a quest is started with <see cref="StartQuest"/> (not for quests restored from a save).
+        /// </summary>
+        public event Action<QuestState>? OnQuestStarted;
+
+        /// <summary>
         /// Event raised when a quest is successfully completed.
         /// </summary>
         public event Action<QuestState>? OnQuestCompleted;
@@ -188,8 +193,9 @@ namespace DynamicBox.Quest.Core
             Debug.Assert(_log != null, "QuestManager._log should be initialized in Awake()");
             Debug.Assert(_evaluator != null, "QuestManager._evaluator should be initialized in Awake()");
 
-            var state = _log!.StartQuest(questAsset);;
+            var state = _log!.StartQuest(questAsset);
             _evaluator!.ActivateReadyObjectives(state);
+            SafeInvoke(OnQuestStarted, state, "OnQuestStarted");
             
             // Immediately evaluate objectives in case they're already complete
             foreach (var obj in state.GetObjectiveStates())

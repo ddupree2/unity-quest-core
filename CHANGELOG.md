@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `QuestManager.OnQuestStarted` (raised by `StartQuest`, not by restoring a save)
+- `ObjectiveState.CompletionProgress`: read-only progress of the completion condition for UI; the condition instance stays internal
 - **Completed/failed quest history**: `QuestLog.Completed` / `Failed` and `QuestManager.CompletedQuests`, `FailedQuests`, `IsActive`, `IsCompleted`, `IsFailed`
   - Ended quests keep their final `QuestState` (objective statuses included)
   - One outcome per quest: restarting a quest removes it from history, so the latest outcome wins; `StopQuest` records nothing

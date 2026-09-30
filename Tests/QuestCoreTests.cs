@@ -70,6 +70,9 @@ namespace DynamicBox.Quest.Tests
         // Full save/restore: condition progress, history, RestoreSaveData / ClearAll
         [Test] public void QuestSaveRestore() => QuestSaveRestoreTests.RunAllSaveRestoreTests();
 
+        // What quest UI reads: CompletionProgress and OnQuestStarted
+        [Test] public void QuestUiSupport() => QuestUiSupportTests.RunAllUiSupportTests();
+
         // Frame-based suite (QuestManager polling, events across frames). Its failures surface as
         // logged exceptions, which the Test Runner also treats as failures.
         [UnityTest]
