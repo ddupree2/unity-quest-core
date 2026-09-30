@@ -31,7 +31,6 @@ namespace DynamicBox.Quest.Tests
             // Advanced QuestManager internal methods
             TestEvaluateObjectiveAndQuestLogic();
             TestMarkDirtyAndProcessQueue();
-            TestSequentialFlagObjectivesAlreadyMet();
             
             // Advanced condition scenarios
             TestComplexPrerequisiteChains();
@@ -515,10 +514,9 @@ namespace DynamicBox.Quest.Tests
         /// already true marks itself dirty during bind. That used to modify the dirty set mid-iteration
         /// ("Collection was modified"). The whole chain should now resolve in one ProcessAll.
         /// </summary>
-        private static void TestSequentialFlagObjectivesAlreadyMet()
+        internal static void TestSequentialFlagObjectivesAlreadyMet()
         {
-            Debug.Log("
-[ADVANCED TEST] Sequential Flag Objectives Already Met");
+            Debug.Log("\n[ADVANCED TEST] Sequential Flag Objectives Already Met");
 
             var playerRefObject = new GameObject("TestPlayerRef");
             var flagService = playerRefObject.AddComponent<DefaultFlagService>();

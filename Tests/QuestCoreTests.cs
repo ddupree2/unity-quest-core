@@ -60,6 +60,10 @@ namespace DynamicBox.Quest.Tests
         [Test] public void FactoryMethods() => FactoryMethodTests.RunAllFactoryMethodTests();
         [Test] public void ImmutableEvents() => ImmutableEventTests.RunAllImmutableEventTests();
 
+        // Fix: DirtyQueueProcessor threw "collection was modified" when completing an objective
+        // activated a next one whose flag was already set.
+        [Test] public void DirtyQueueChainedFlagObjectives() => QuestSystemAdvancedTests.TestSequentialFlagObjectivesAlreadyMet();
+
         // Frame-based suite (QuestManager polling, events across frames). Its failures surface as
         // logged exceptions, which the Test Runner also treats as failures.
         [UnityTest]
