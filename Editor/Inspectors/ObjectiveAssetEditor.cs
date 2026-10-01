@@ -59,7 +59,9 @@ namespace DynamicBox.Quest.Editor
 
             // Basic Info
             EditorGUILayout.LabelField("Basic Information", EditorStyles.miniLabel);
-            EditorGUILayout.PropertyField(_objectiveIdProp, new GUIContent("Objective ID"));
+            EditorGUILayout.PropertyField(_objectiveIdProp, new GUIContent("Objective ID",
+                "Name used in Yarn (objective_active(\"questId\", \"id\")) and in saves; unique within its quest. Changing it after release breaks existing saves."));
+            DrawIdFromNameButton(_objectiveIdProp);
             EditorGUILayout.PropertyField(_titleProp, new GUIContent("Title"));
             
             EditorGUILayout.LabelField("Description");
@@ -105,6 +107,21 @@ namespace DynamicBox.Quest.Editor
             ValidateObjective();
 
             serializedObject.ApplyModifiedProperties();
+        }
+
+        // Offers a readable ID from the asset name when the ID is empty
+        private void DrawIdFromNameButton(SerializedProperty idProperty)
+        {
+            if (!string.IsNullOrWhiteSpace(idProperty.stringValue))
+            {
+                return;
+            }
+
+            string suggestion = QuestIdUtility.FromName(target.name);
+            if (!string.IsNullOrEmpty(suggestion) && GUILayout.Button($"Use \"{suggestion}\" (from asset name)"))
+            {
+                idProperty.stringValue = suggestion;
+            }
         }
 
         private void ShowConditionCreationMenu(bool isFailCondition)

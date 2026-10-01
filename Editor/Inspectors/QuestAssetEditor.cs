@@ -32,6 +32,21 @@ namespace DynamicBox.Quest.Editor
 
         #endregion
 
+        // Offers a readable ID from the asset name when the ID is empty
+        private void DrawIdFromNameButton(SerializedProperty idProperty)
+        {
+            if (!string.IsNullOrWhiteSpace(idProperty.stringValue))
+            {
+                return;
+            }
+
+            string suggestion = QuestIdUtility.FromName(target.name);
+            if (!string.IsNullOrEmpty(suggestion) && GUILayout.Button($"Use \"{suggestion}\" (from asset name)"))
+            {
+                idProperty.stringValue = suggestion;
+            }
+        }
+
         public override void OnInspectorGUI()
         {
             // Safety check - if properties are null, fall back to default inspector
@@ -57,7 +72,9 @@ namespace DynamicBox.Quest.Editor
 
             // Basic Info
             EditorGUILayout.LabelField("Basic Information", EditorStyles.miniLabel);
-            EditorGUILayout.PropertyField(_questIdProp, new GUIContent("Quest ID"));
+            EditorGUILayout.PropertyField(_questIdProp, new GUIContent("Quest ID",
+                "Name used in Yarn (quest_active(\"id\")) and in saves. Changing it after release breaks existing saves."));
+            DrawIdFromNameButton(_questIdProp);
             EditorGUILayout.PropertyField(_displayNameProp, new GUIContent("Display Name"));
             
             EditorGUILayout.LabelField("Description");

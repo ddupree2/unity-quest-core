@@ -261,8 +261,6 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                 var quest = ScriptableObject.CreateInstance<QuestAsset>();
 
                 // Initialize with reflection
-                var questIdField = typeof(QuestAsset).GetField("questId",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 var displayNameField = typeof(QuestAsset).GetField("displayName",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 var descriptionField = typeof(QuestAsset).GetField("description",
@@ -270,7 +268,6 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                 var objectivesField = typeof(QuestAsset).GetField("objectives",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
-                questIdField?.SetValue(quest, System.Guid.NewGuid().ToString());
                 displayNameField?.SetValue(quest, "New Quest");
                 descriptionField?.SetValue(quest, "Quest description here");
                 objectivesField?.SetValue(quest, new System.Collections.Generic.List<ObjectiveAsset>());
@@ -284,8 +281,6 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                 var objective = ScriptableObject.CreateInstance<ObjectiveAsset>();
 
                 // Initialize with reflection
-                var objectiveIdField = typeof(ObjectiveAsset).GetField("objectiveId",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 var titleField = typeof(ObjectiveAsset).GetField("title",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 var descriptionField = typeof(ObjectiveAsset).GetField("description",
@@ -295,7 +290,6 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                 var prerequisitesField = typeof(ObjectiveAsset).GetField("prerequisites",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
-                objectiveIdField?.SetValue(objective, System.Guid.NewGuid().ToString());
                 titleField?.SetValue(objective, "New Objective");
                 descriptionField?.SetValue(objective, "Objective description here");
                 isOptionalField?.SetValue(objective, false);
@@ -336,6 +330,9 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                 return;
             }
 
+            // Readable ID from the chosen file name ("TalkToGrandpa" → "talk_to_grandpa"); Yarn uses it
+            SetIdFromFileName(newAsset, path);
+
             AssetDatabase.CreateAsset(newAsset, path);
             AssetDatabase.SaveAssets();
 
@@ -360,6 +357,17 @@ namespace DynamicBox.Quest.Editor.GraphEditor
         }
 
         #endregion
+
+        private static void SetIdFromFileName(ScriptableObject asset, string path)
+        {
+            string fieldName = asset is QuestAsset ? "questId" : asset is ObjectiveAsset ? "objectiveId" : null;
+            if (fieldName == null)
+                return;
+
+            var idField = asset.GetType().GetField(fieldName,
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            idField?.SetValue(asset, QuestIdUtility.FromName(System.IO.Path.GetFileNameWithoutExtension(path)));
+        }
 
         private void AddAssetReferenceButton(ScriptableObject asset)
         {
