@@ -17,6 +17,9 @@ namespace DynamicBox.Quest.Core
 
         [SerializeField] private List<ObjectiveAsset> objectives = new();
 
+        [Tooltip("Leave this quest out of the game's quest database (e.g. debug/test quests), so it isn't found by QuestId and isn't pulled into builds by the database.")]
+        [SerializeField] private bool excludeFromDatabase;
+
         /// <summary>
         /// Gets the unique identifier for this quest.
         /// </summary>
@@ -36,6 +39,12 @@ namespace DynamicBox.Quest.Core
         /// Gets the read-only list of objectives required to complete this quest.
         /// </summary>
         public IReadOnlyList<ObjectiveAsset> Objectives => objectives;
+
+        /// <summary>
+        /// Gets whether the game's quest database should leave this quest out (e.g. debug/test quests).
+        /// Only that registry reads it; Quest Core treats the quest like any other.
+        /// </summary>
+        public bool ExcludeFromDatabase => excludeFromDatabase;
 
 #if UNITY_EDITOR || UNITY_INCLUDE_TESTS
         /// <summary>

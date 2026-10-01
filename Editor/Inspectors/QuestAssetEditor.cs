@@ -11,6 +11,7 @@ namespace DynamicBox.Quest.Editor
         private SerializedProperty _displayNameProp;
         private SerializedProperty _descriptionProp;
         private SerializedProperty _objectivesProp;
+        private SerializedProperty _excludeFromDatabaseProp;
 
         #region Unity Methods
 
@@ -20,6 +21,7 @@ namespace DynamicBox.Quest.Editor
             _displayNameProp = serializedObject.FindProperty("displayName");
             _descriptionProp = serializedObject.FindProperty("description");
             _objectivesProp = serializedObject.FindProperty("objectives");
+            _excludeFromDatabaseProp = serializedObject.FindProperty("excludeFromDatabase");
             
             // Validate that all properties were found
             if (_questIdProp == null || _displayNameProp == null || _descriptionProp == null || _objectivesProp == null)
@@ -76,6 +78,11 @@ namespace DynamicBox.Quest.Editor
                 "Name used in Yarn (quest_active(\"id\")) and in saves. Changing it after release breaks existing saves."));
             DrawIdFromNameButton(_questIdProp);
             EditorGUILayout.PropertyField(_displayNameProp, new GUIContent("Display Name"));
+            if (_excludeFromDatabaseProp != null)
+            {
+                EditorGUILayout.PropertyField(_excludeFromDatabaseProp, new GUIContent("Exclude From Database",
+                    "Leave this quest out of the game's quest database (e.g. debug/test quests), so it isn't found by QuestId and isn't pulled into builds by the database."));
+            }
             
             EditorGUILayout.LabelField("Description");
             _descriptionProp.stringValue = EditorGUILayout.TextArea(_descriptionProp.stringValue, GUILayout.Height(60));
