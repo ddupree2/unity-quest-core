@@ -123,7 +123,8 @@ namespace DynamicBox.Quest.Editor
         {
             string assetPath = AssetDatabase.GetAssetPath(target);
             string directory = System.IO.Path.GetDirectoryName(assetPath);
-            string conditionName = isFailCondition ? "NewFailCondition" : "NewCondition";
+            // Named after the objective so the file is recognisable in the Project window
+            string conditionName = $"{target.name}_{(isFailCondition ? "Fail" : "Completion")}";
             string conditionPath = AssetDatabase.GenerateUniqueAssetPath($"{directory}/{conditionName}.asset");
             
             var condition = (ConditionAsset)CreateInstance(conditionType);

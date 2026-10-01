@@ -112,11 +112,51 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                 return;
             }
 
+            AddAssetNameField(asset);
+
             _assetEditor = UnityEditor.Editor.CreateEditor(asset);
             _connectionSignature = GetConnectionSignature(asset);
             _contentContainer.Add(new IMGUIContainer(DrawAssetInspector));
 
             AddAssetReferenceButton(asset);
+        }
+
+        /// <summary>
+        /// Renames the asset file (and so the asset) when the field is committed with Enter or by
+        /// leaving it, so graph-created assets don't keep names like "NewCondition".
+        /// </summary>
+        private void AddAssetNameField(ScriptableObject asset)
+        {
+            var nameField = new TextField("Asset Name")
+            {
+                value = asset.name,
+                // Only commit on Enter / focus loss: renaming on every keystroke would rename the file each time
+                isDelayed = true
+            };
+            nameField.labelElement.style.minWidth = 90;
+            nameField.style.marginBottom = 8;
+
+            nameField.RegisterValueChangedCallback(evt =>
+            {
+                string newName = evt.newValue?.Trim();
+                if (string.IsNullOrEmpty(newName) || newName == asset.name)
+                {
+                    nameField.SetValueWithoutNotify(asset.name);
+                    return;
+                }
+
+                string error = AssetDatabase.RenameAsset(AssetDatabase.GetAssetPath(asset), newName);
+                if (!string.IsNullOrEmpty(error))
+                {
+                    EditorUtility.DisplayDialog("Rename Failed", error, "OK");
+                    nameField.SetValueWithoutNotify(asset.name);
+                    return;
+                }
+
+                _currentNode?.RefreshNode();
+            });
+
+            _contentContainer.Add(nameField);
         }
 
         private void DrawAssetInspector()
