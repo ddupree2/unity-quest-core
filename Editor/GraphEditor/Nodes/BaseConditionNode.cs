@@ -1,3 +1,4 @@
+using System;
 using DynamicBox.Quest.Core;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine.UIElements;
@@ -10,12 +11,18 @@ namespace DynamicBox.Quest.Editor.GraphEditor
     /// </summary>
     public abstract class BaseConditionNode : BaseQuestNode
     {
-        public ConditionAsset Asset { get; protected set; }
+        /// <summary>The condition asset; null until a new node's asset is created.</summary>
+        public ConditionAsset Asset { get; set; }
+
+        /// <summary>The condition type, known before the asset exists (used to create it).</summary>
+        public Type ConditionType { get; }
+
         public Port InputPort => _inputPort;
 
-        protected BaseConditionNode(ConditionAsset asset)
+        protected BaseConditionNode(ConditionAsset asset, Type conditionType)
         {
             Asset = asset;
+            ConditionType = asset != null ? asset.GetType() : conditionType;
             AddToClassList("condition-node");
 
             // All condition nodes have an input port
@@ -36,38 +43,6 @@ namespace DynamicBox.Quest.Editor.GraphEditor
             container.Add(propertyLabel);
 
             return container;
-        }
-
-        /// <summary>
-        /// Creates a service dependency indicator.
-        /// </summary>
-        protected VisualElement CreateServiceBadge(string serviceName)
-        {
-            var badge = CreateLabel($"🔍 {serviceName}", "service-badge");
-            return badge;
-        }
-    }
-
-    /// <summary>
-    /// Generic condition node for unknown or unsupported condition types.
-    /// </summary>
-    public class GenericConditionNode : BaseConditionNode
-    {
-        public GenericConditionNode(ConditionAsset asset) : base(asset)
-        {
-            title = "❓ CONDITION";
-            
-            if (asset != null)
-            {
-                var typeLabel = CreateLabel($"Type: {asset.GetType().Name}", "node-name-label");
-                mainContainer.Add(typeLabel);
-
-                var assetLabel = CreateLabel($"Asset: {asset.name}", "node-description-label");
-                mainContainer.Add(assetLabel);
-            }
-
-            RefreshExpandedState();
-            RefreshPorts();
         }
 
         public override UnityEngine.Object GetAsset()

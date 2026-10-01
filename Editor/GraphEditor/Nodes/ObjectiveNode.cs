@@ -52,7 +52,7 @@ namespace DynamicBox.Quest.Editor.GraphEditor
         /// </summary>
         public override void RefreshNode()
         {
-            mainContainer.Clear();
+            Body.Clear();
             BuildNodeContent();
             RefreshExpandedState();
         }
@@ -63,11 +63,11 @@ namespace DynamicBox.Quest.Editor.GraphEditor
             {
                 // Objective ID
                 var idLabel = CreateLabel($"ID: {Asset.ObjectiveId}", "node-id-label");
-                mainContainer.Add(idLabel);
+                Body.Add(idLabel);
 
                 // Title/Display Name
                 var titleLabel = CreateLabel(Asset.DisplayName, "node-name-label");
-                mainContainer.Add(titleLabel);
+                Body.Add(titleLabel);
 
                 // Description (truncated)
                 if (!string.IsNullOrEmpty(Asset.Description))
@@ -76,7 +76,7 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                         ? Asset.Description.Substring(0, 40) + "..." 
                         : Asset.Description;
                     var descLabel = CreateLabel(desc, "node-description-label");
-                    mainContainer.Add(descLabel);
+                    Body.Add(descLabel);
                 }
 
                 // Settings/Badges
@@ -106,12 +106,12 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                     }
                 }
 
-                mainContainer.Add(settingsContainer);
+                Body.Add(settingsContainer);
             }
             else
             {
                 var placeholderLabel = CreateLabel("New Objective (Not Saved)", "node-placeholder");
-                mainContainer.Add(placeholderLabel);
+                Body.Add(placeholderLabel);
             }
         }
 

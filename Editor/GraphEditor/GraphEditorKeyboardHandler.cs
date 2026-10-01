@@ -175,25 +175,9 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                 {
                     newNode = new ObjectiveNode(objectiveNode.Asset);
                 }
-                else if (selectedNode is ItemCollectedConditionNode itemNode && itemNode.Asset != null)
+                else if (selectedNode is BaseConditionNode conditionNode && conditionNode.Asset != null)
                 {
-                    newNode = new ItemCollectedConditionNode(itemNode.Asset);
-                }
-                else if (selectedNode is AreaEnteredConditionNode areaNode && areaNode.Asset != null)
-                {
-                    newNode = new AreaEnteredConditionNode(areaNode.Asset);
-                }
-                else if (selectedNode is TimeElapsedConditionNode timeNode && timeNode.Asset != null)
-                {
-                    newNode = new TimeElapsedConditionNode(timeNode.Asset);
-                }
-                else if (selectedNode is CustomFlagConditionNode flagNode && flagNode.Asset != null)
-                {
-                    newNode = new CustomFlagConditionNode(flagNode.Asset);
-                }
-                else if (selectedNode is ConditionGroupConditionNode groupNode && groupNode.Asset != null)
-                {
-                    newNode = new ConditionGroupConditionNode(groupNode.Asset);
+                    newNode = new ConditionNode(conditionNode.Asset);
                 }
 
                 if (newNode != null)

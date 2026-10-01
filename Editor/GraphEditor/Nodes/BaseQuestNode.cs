@@ -13,10 +13,20 @@ namespace DynamicBox.Quest.Editor.GraphEditor
         protected Port _inputPort;
         protected Port _outputPort;
 
+        /// <summary>
+        /// Holds the node's display content. Nodes rebuild this on refresh instead of clearing
+        /// mainContainer, which also holds the title and ports.
+        /// </summary>
+        protected VisualElement Body { get; }
+
         protected BaseQuestNode()
         {
             // Apply base styling
             AddToClassList("base-quest-node");
+
+            Body = new VisualElement();
+            Body.AddToClassList("node-body");
+            mainContainer.Add(Body);
         }
 
         /// <summary>

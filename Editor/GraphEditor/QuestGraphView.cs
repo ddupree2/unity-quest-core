@@ -199,22 +199,8 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                 objectiveIndex++;
 
                 // Create condition nodes if they exist
-                if (objective.CompletionCondition != null)
-                {
-                    var conditionNodeId = QuestGraphLayout.GetNodeId(objective.CompletionCondition);
-                    var savedConditionPos = _layout?.GetNodePosition(conditionNodeId);
-                    var conditionPos = savedConditionPos?.position ?? new Vector2(position.x, position.y + 260);
-                    
-                    var conditionNode = CreateConditionNode(objective.CompletionCondition, conditionPos);
-                    if (conditionNode != null)
-                    {
-                        AddElement(conditionNode);
-                        
-                        // Connect objective completion port to condition
-                        var conditionEdge = objectiveNode.CompletionPort.ConnectTo(conditionNode.InputPort);
-                        AddElement(conditionEdge);
-                    }
-                }
+                AddConditionNode(objective.CompletionCondition, objectiveNode.CompletionPort, new Vector2(position.x, position.y + 260));
+                AddConditionNode(objective.FailCondition, objectiveNode.FailurePort, new Vector2(position.x + 220, position.y + 260));
             }
         }
 
@@ -234,42 +220,23 @@ namespace DynamicBox.Quest.Editor.GraphEditor
             return node;
         }
 
+        private void AddConditionNode(ConditionAsset condition, Port objectivePort, Vector2 defaultPosition)
+        {
+            if (condition == null)
+                return;
+
+            var savedPosition = _layout?.GetNodePosition(QuestGraphLayout.GetNodeId(condition));
+            var conditionNode = CreateConditionNode(condition, savedPosition?.position ?? defaultPosition);
+            AddElement(conditionNode);
+            AddElement(objectivePort.ConnectTo(conditionNode.InputPort));
+        }
+
         private BaseConditionNode CreateConditionNode(ConditionAsset condition, Vector2 position)
         {
-            BaseConditionNode node = null;
-
-            // Determine condition type and create appropriate node
-            var conditionType = condition.GetType().Name;
-            
-            switch (conditionType)
-            {
-                case "ItemCollectedConditionAsset":
-                    node = new ItemCollectedConditionNode(condition);
-                    break;
-                case "AreaEnteredConditionAsset":
-                    node = new AreaEnteredConditionNode(condition);
-                    break;
-                case "TimeElapsedConditionAsset":
-                    node = new TimeElapsedConditionNode(condition);
-                    break;
-                case "CustomFlagConditionAsset":
-                    node = new CustomFlagConditionNode(condition);
-                    break;
-                case "ConditionGroupAsset":
-                    node = new ConditionGroupConditionNode(condition);
-                    break;
-                default:
-                    Debug.LogWarning($"Unknown condition type: {conditionType}");
-                    node = new GenericConditionNode(condition);
-                    break;
-            }
-
-            if (node != null)
-            {
-                var snappedPosition = SnapToGrid(position);
-                node.SetPosition(new Rect(snappedPosition, new Vector2(200, 120)));
-            }
-
+            // One generic node for every condition type: it summarizes the asset's fields and the
+            // side panel draws the asset's own inspector
+            var node = new ConditionNode(condition);
+            node.SetPosition(new Rect(SnapToGrid(position), new Vector2(200, 120)));
             return node;
         }
 
@@ -317,8 +284,9 @@ namespace DynamicBox.Quest.Editor.GraphEditor
             if (outputNode is ObjectiveNode && inputNode is BaseConditionNode)
             {
                 // Only allow connections from Completion or Failure ports
-                var portName = startPort.direction == Direction.Output ? startPort.portName : endPort.portName;
-                return portName == "Completion" || portName == "Failure";
+                var objectivePort = startPort.direction == Direction.Output ? startPort : endPort;
+                var objectiveNode = (ObjectiveNode)outputNode;
+                return objectivePort == objectiveNode.CompletionPort || objectivePort == objectiveNode.FailurePort;
             }
 
             // All other combinations are invalid
@@ -340,20 +308,13 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                 
                 evt.menu.AppendSeparator();
                 
-                evt.menu.AppendAction("Add Condition/📦 Item Collected", 
-                    (a) => CreateConditionNodeAtPosition("ItemCollected", mousePosition));
-                
-                evt.menu.AppendAction("Add Condition/📍 Area Entered", 
-                    (a) => CreateConditionNodeAtPosition("AreaEntered", mousePosition));
-                
-                evt.menu.AppendAction("Add Condition/⏱️ Time Elapsed", 
-                    (a) => CreateConditionNodeAtPosition("TimeElapsed", mousePosition));
-                
-                evt.menu.AppendAction("Add Condition/🏁 Custom Flag", 
-                    (a) => CreateConditionNodeAtPosition("CustomFlag", mousePosition));
-                
-                evt.menu.AppendAction("Add Condition/🔀 Condition Group", 
-                    (a) => CreateConditionNodeAtPosition("ConditionGroup", mousePosition));
+                // Every creatable ConditionAsset type, so new condition classes appear without editor code
+                foreach (var conditionType in ConditionTypeCatalog.CreatableTypes)
+                {
+                    var type = conditionType;
+                    evt.menu.AppendAction($"Add Condition/{ConditionTypeCatalog.GetDisplayName(type)}",
+                        (a) => CreateConditionNodeAtPosition(type, mousePosition));
+                }
             }
 
             base.BuildContextualMenu(evt);
@@ -373,38 +334,37 @@ namespace DynamicBox.Quest.Editor.GraphEditor
             AddToSelection(node);
         }
 
-        private void CreateConditionNodeAtPosition(string conditionType, Vector2 position)
+        private void CreateConditionNodeAtPosition(Type conditionType, Vector2 position)
         {
-            var snappedPosition = SnapToGrid(position);
-            BaseConditionNode node = null;
+            var node = new ConditionNode(null, conditionType);
+            node.SetPosition(new Rect(SnapToGrid(position), _defaultNodeSize));
 
-            switch (conditionType)
-            {
-                case "ItemCollected":
-                    node = new ItemCollectedConditionNode(null);
-                    break;
-                case "AreaEntered":
-                    node = new AreaEnteredConditionNode(null);
-                    break;
-                case "TimeElapsed":
-                    node = new TimeElapsedConditionNode(null);
-                    break;
-                case "CustomFlag":
-                    node = new CustomFlagConditionNode(null);
-                    break;
-                case "ConditionGroup":
-                    node = new ConditionGroupConditionNode(null);
-                    break;
-            }
+            // Node is created without asset - inspector will show "Create Asset" button
+            AddElement(node);
 
-            if (node != null)
+            // Select the new node
+            ClearSelection();
+            AddToSelection(node);
+        }
+
+        /// <summary>
+        /// Selects the node showing this asset and reports it to the inspector panel
+        /// (used to keep the selection after the graph is rebuilt).
+        /// </summary>
+        public void SelectNodeForAsset(UnityEngine.Object asset)
+        {
+            if (asset == null)
+                return;
+
+            foreach (var element in graphElements.ToList())
             {
-                node.SetPosition(new Rect(snappedPosition, _defaultNodeSize));
-                AddElement(node);
-                
-                // Select the new node
-                ClearSelection();
-                AddToSelection(node);
+                if (element is BaseQuestNode node && node.GetAsset() == asset)
+                {
+                    ClearSelection();
+                    AddToSelection(node);
+                    OnNodeSelected?.Invoke(node);
+                    return;
+                }
             }
         }
 
@@ -533,15 +493,13 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                     Undo.RecordObject(objNode.Asset, "Set Objective Condition");
                     
                     // Determine which port was used (completion or failure)
-                    var portName = edge.output.portName;
-                    
-                    if (portName == "Completion")
+                    if (edge.output == objNode.CompletionPort)
                     {
                         var completionField = typeof(ObjectiveAsset).GetField("completionCondition",
                             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                         completionField?.SetValue(objNode.Asset, condNode.Asset);
                     }
-                    else if (portName == "Failure")
+                    else if (edge.output == objNode.FailurePort)
                     {
                         var failureField = typeof(ObjectiveAsset).GetField("failCondition",
                             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -606,9 +564,7 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                 {
                     Undo.RecordObject(objNode.Asset, "Remove Objective Condition");
                     
-                    var portName = edge.output.portName;
-                    
-                    if (portName == "Completion")
+                    if (edge.output == objNode.CompletionPort)
                     {
                         var completionField = typeof(ObjectiveAsset).GetField("completionCondition",
                             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -617,7 +573,7 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                             completionField.SetValue(objNode.Asset, null);
                         }
                     }
-                    else if (portName == "Failure")
+                    else if (edge.output == objNode.FailurePort)
                     {
                         var failureField = typeof(ObjectiveAsset).GetField("failCondition",
                             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);

@@ -1,271 +1,108 @@
-using System.Reflection;
+using System;
 using DynamicBox.Quest.Core;
-using UnityEngine.UIElements;
+using UnityEditor;
 
 namespace DynamicBox.Quest.Editor.GraphEditor
 {
     /// <summary>
-    /// Node for ItemCollectedConditionAsset.
-    /// Displays item ID and quantity requirements.
+    /// Node for any ConditionAsset type. Shows a short summary of the asset's serialized fields;
+    /// editing happens in the side panel, which draws the asset's own inspector. New condition
+    /// types need no node code.
     /// </summary>
-    public class ItemCollectedConditionNode : BaseConditionNode
+    public class ConditionNode : BaseConditionNode
     {
-        public ItemCollectedConditionNode(ConditionAsset asset) : base(asset)
+        private const int MaxSummaryLines = 4;
+        private const int MaxValueLength = 28;
+
+        public ConditionNode(ConditionAsset asset) : this(asset, asset != null ? asset.GetType() : null)
         {
-            title = "📦 ITEM COLLECTED";
-            AddToClassList("item-condition-node");
+        }
+
+        public ConditionNode(ConditionAsset asset, Type conditionType) : base(asset, conditionType)
+        {
+            title = ConditionTypeCatalog.GetDisplayName(ConditionType).ToUpperInvariant();
 
             BuildContent();
             RefreshExpandedState();
             RefreshPorts();
         }
 
-        private void BuildContent()
-        {
-            if (Asset == null)
-            {
-                var placeholderLabel = CreateLabel("New Condition (Not Saved)", "node-placeholder");
-                mainContainer.Add(placeholderLabel);
-                return;
-            }
-
-            // Use reflection to read private fields
-            var conditionIdField = typeof(ConditionAsset).GetField("conditionId",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            var quantityField = Asset.GetType().GetField("requiredCount",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-
-            var itemId = conditionIdField?.GetValue(Asset) as string ?? "unknown";
-            var quantity = (int)(quantityField?.GetValue(Asset) ?? 1);
-
-            mainContainer.Add(CreatePropertyDisplay("Item ID", itemId));
-            mainContainer.Add(CreatePropertyDisplay("Quantity", quantity.ToString()));
-            mainContainer.Add(CreateServiceBadge("Inventory"));
-
-            var typeLabel = CreateLabel("📊 Event-Driven", "condition-type-label");
-            mainContainer.Add(typeLabel);
-        }
-
         public override void RefreshNode()
         {
-            mainContainer.Clear();
             BuildContent();
             RefreshExpandedState();
-        }
-
-        public override UnityEngine.Object GetAsset()
-        {
-            return Asset;
-        }
-    }
-
-    /// <summary>
-    /// Node for AreaEnteredConditionAsset.
-    /// Displays area ID requirement.
-    /// </summary>
-    public class AreaEnteredConditionNode : BaseConditionNode
-    {
-        public AreaEnteredConditionNode(ConditionAsset asset) : base(asset)
-        {
-            title = "📍 AREA ENTERED";
-            AddToClassList("area-condition-node");
-
-            BuildContent();
-            RefreshExpandedState();
-            RefreshPorts();
         }
 
         private void BuildContent()
         {
+            Body.Clear();
+
             if (Asset == null)
             {
-                var placeholderLabel = CreateLabel("New Condition (Not Saved)", "node-placeholder");
-                mainContainer.Add(placeholderLabel);
+                Body.Add(CreateLabel("New Condition (Not Saved)", "node-placeholder"));
                 return;
             }
 
-            var conditionIdField = typeof(ConditionAsset).GetField("conditionId",
-                BindingFlags.NonPublic | BindingFlags.Instance);
+            Body.Add(CreateLabel(Asset.name, "node-name-label"));
 
-            var areaId = conditionIdField?.GetValue(Asset) as string ?? "unknown";
-
-            mainContainer.Add(CreatePropertyDisplay("Area ID", areaId));
-            mainContainer.Add(CreateServiceBadge("Area"));
-
-            var typeLabel = CreateLabel("📊 Event-Driven", "condition-type-label");
-            mainContainer.Add(typeLabel);
-        }
-
-        public override void RefreshNode()
-        {
-            mainContainer.Clear();
-            BuildContent();
-            RefreshExpandedState();
-        }
-
-        public override UnityEngine.Object GetAsset()
-        {
-            return Asset;
-        }
-    }
-
-    /// <summary>
-    /// Node for TimeElapsedConditionAsset.
-    /// Displays time requirement.
-    /// </summary>
-    public class TimeElapsedConditionNode : BaseConditionNode
-    {
-        public TimeElapsedConditionNode(ConditionAsset asset) : base(asset)
-        {
-            title = "⏱️ TIME ELAPSED";
-            AddToClassList("time-condition-node");
-
-            BuildContent();
-            RefreshExpandedState();
-            RefreshPorts();
-        }
-
-        private void BuildContent()
-        {
-            if (Asset == null)
+            using (var serializedObject = new SerializedObject(Asset))
             {
-                var placeholderLabel = CreateLabel("New Condition (Not Saved)", "node-placeholder");
-                mainContainer.Add(placeholderLabel);
-                return;
+                SerializedProperty property = serializedObject.GetIterator();
+                int shown = 0;
+                bool enterChildren = true;
+
+                while (property.NextVisible(enterChildren))
+                {
+                    enterChildren = false;
+
+                    // The script reference and Quest Core's auto-generated id aren't settings
+                    if (property.propertyPath == "m_Script" || property.propertyPath == "conditionId")
+                    {
+                        continue;
+                    }
+
+                    if (shown == MaxSummaryLines)
+                    {
+                        Body.Add(CreateLabel("…", "node-description-label"));
+                        break;
+                    }
+
+                    Body.Add(CreatePropertyDisplay(property.displayName, Describe(property)));
+                    shown++;
+                }
+            }
+        }
+
+        private static string Describe(SerializedProperty property)
+        {
+            switch (property.propertyType)
+            {
+                case SerializedPropertyType.ObjectReference:
+                    return property.objectReferenceValue != null ? property.objectReferenceValue.name : "None";
+                case SerializedPropertyType.Boolean:
+                    return property.boolValue ? "Yes" : "No";
+                case SerializedPropertyType.Integer:
+                    return property.intValue.ToString();
+                case SerializedPropertyType.Float:
+                    return property.floatValue.ToString("0.##");
+                case SerializedPropertyType.String:
+                    return Truncate(string.IsNullOrEmpty(property.stringValue) ? "(empty)" : property.stringValue);
+                case SerializedPropertyType.Enum:
+                    int index = property.enumValueIndex;
+                    return index >= 0 && index < property.enumDisplayNames.Length ? property.enumDisplayNames[index] : "?";
             }
 
-            var requiredSecondsField = Asset.GetType().GetField("requiredSeconds",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-
-            var seconds = (float)(requiredSecondsField?.GetValue(Asset) ?? 0f);
-
-            mainContainer.Add(CreatePropertyDisplay("Required Time", $"{seconds}s"));
-            mainContainer.Add(CreateServiceBadge("Time"));
-
-            var typeLabel = CreateLabel("⏱️ Time-Based", "condition-type-label");
-            mainContainer.Add(typeLabel);
-        }
-
-        public override void RefreshNode()
-        {
-            mainContainer.Clear();
-            BuildContent();
-            RefreshExpandedState();
-        }
-
-        public override UnityEngine.Object GetAsset()
-        {
-            return Asset;
-        }
-    }
-
-    /// <summary>
-    /// Node for CustomFlagConditionAsset.
-    /// Displays flag ID and expected value.
-    /// </summary>
-    public class CustomFlagConditionNode : BaseConditionNode
-    {
-        public CustomFlagConditionNode(ConditionAsset asset) : base(asset)
-        {
-            title = "🏁 CUSTOM FLAG";
-            AddToClassList("flag-condition-node");
-
-            BuildContent();
-            RefreshExpandedState();
-            RefreshPorts();
-        }
-
-        private void BuildContent()
-        {
-            if (Asset == null)
+            if (property.isArray)
             {
-                var placeholderLabel = CreateLabel("New Condition (Not Saved)", "node-placeholder");
-                mainContainer.Add(placeholderLabel);
-                return;
+                return $"{property.arraySize} item(s)";
             }
 
-            var conditionIdField = typeof(ConditionAsset).GetField("conditionId",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            var expectedValueField = Asset.GetType().GetField("_expectedValue",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-
-            var flagId = conditionIdField?.GetValue(Asset) as string ?? "unknown";
-            var expectedValue = (bool)(expectedValueField?.GetValue(Asset) ?? true);
-
-            mainContainer.Add(CreatePropertyDisplay("Flag ID", flagId));
-            mainContainer.Add(CreatePropertyDisplay("Expected", expectedValue.ToString()));
-            mainContainer.Add(CreateServiceBadge("Flag"));
-
-            var typeLabel = CreateLabel("🎯 Custom Logic", "condition-type-label");
-            mainContainer.Add(typeLabel);
+            return "…";
         }
 
-        public override void RefreshNode()
+        private static string Truncate(string value)
         {
-            mainContainer.Clear();
-            BuildContent();
-            RefreshExpandedState();
-        }
-
-        public override UnityEngine.Object GetAsset()
-        {
-            return Asset;
-        }
-    }
-
-    /// <summary>
-    /// Node for ConditionGroupAsset.
-    /// Displays AND/OR logic and child count.
-    /// </summary>
-    public class ConditionGroupConditionNode : BaseConditionNode
-    {
-        public ConditionGroupConditionNode(ConditionAsset asset) : base(asset)
-        {
-            title = "🔀 CONDITION GROUP";
-            AddToClassList("group-condition-node");
-
-            BuildContent();
-            RefreshExpandedState();
-            RefreshPorts();
-        }
-
-        private void BuildContent()
-        {
-            if (Asset == null)
-            {
-                var placeholderLabel = CreateLabel("New Condition (Not Saved)", "node-placeholder");
-                mainContainer.Add(placeholderLabel);
-                return;
-            }
-
-            var operatorField = Asset.GetType().GetField("@operator",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            var childrenField = Asset.GetType().GetField("children",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-
-            var operatorValue = operatorField?.GetValue(Asset);
-            var operatorName = operatorValue?.ToString() ?? "And";
-            
-            var children = childrenField?.GetValue(Asset) as System.Collections.IList;
-            var childCount = children?.Count ?? 0;
-
-            mainContainer.Add(CreatePropertyDisplay("Logic", operatorName));
-            mainContainer.Add(CreatePropertyDisplay("Children", childCount.ToString()));
-
-            var typeLabel = CreateLabel("🔗 Composite", "condition-type-label");
-            mainContainer.Add(typeLabel);
-        }
-
-        public override void RefreshNode()
-        {
-            mainContainer.Clear();
-            BuildContent();
-            RefreshExpandedState();
-        }
-
-        public override UnityEngine.Object GetAsset()
-        {
-            return Asset;
+            return value.Length > MaxValueLength ? value.Substring(0, MaxValueLength) + "…" : value;
         }
     }
 }

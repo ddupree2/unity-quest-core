@@ -109,77 +109,24 @@ namespace DynamicBox.Quest.Editor
 
         private void ShowConditionCreationMenu(bool isFailCondition)
         {
+            // Every creatable condition type, so new condition classes appear without editor code
             var menu = new GenericMenu();
-            menu.AddItem(new GUIContent("Item Collected Condition"), false, () => CreateConditionByMenuName("DynamicBox/Quest/Conditions/Item Collected", isFailCondition));
-            menu.AddItem(new GUIContent("Area Entered Condition"), false, () => CreateConditionByMenuName("DynamicBox/Quest/Conditions/Area Entered Condition", isFailCondition));
-            menu.AddItem(new GUIContent("Custom Flag Condition"), false, () => CreateConditionByMenuName("DynamicBox/Quest/Conditions/Custom Flag Condition", isFailCondition));
-            menu.AddItem(new GUIContent("Time Elapsed Condition"), false, () => CreateConditionByMenuName("DynamicBox/Quest/Conditions/Time Elapsed Condition", isFailCondition));
-            menu.AddItem(new GUIContent("Condition Group"), false, () => CreateCondition<ConditionGroupAsset>(isFailCondition));
+            foreach (var conditionType in ConditionTypeCatalog.CreatableTypes)
+            {
+                var type = conditionType;
+                menu.AddItem(new GUIContent(ConditionTypeCatalog.GetDisplayName(type)), false, () => CreateCondition(type, isFailCondition));
+            }
             menu.ShowAsContext();
         }
 
-        private void CreateConditionByMenuName(string menuName, bool isFailCondition)
-        {
-            // Use Unity's menu system to create the asset
-            string assetPath = AssetDatabase.GetAssetPath(target);
-            string directory = System.IO.Path.GetDirectoryName(assetPath);
-            
-            // Create the asset using reflection to avoid direct type references
-            var conditionTypes = System.AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(a => a.GetTypes())
-                .Where(t => typeof(ConditionAsset).IsAssignableFrom(t) && !t.IsAbstract)
-                .ToArray();
-                
-            System.Type targetType = null;
-            if (menuName.Contains("Item Collected"))
-                targetType = conditionTypes.FirstOrDefault(t => t.Name == "ItemCollectedConditionAsset");
-            else if (menuName.Contains("Area Entered"))
-                targetType = conditionTypes.FirstOrDefault(t => t.Name == "AreaEnteredConditionAsset");
-            else if (menuName.Contains("Custom Flag"))
-                targetType = conditionTypes.FirstOrDefault(t => t.Name == "CustomFlagConditionAsset");
-            else if (menuName.Contains("Time Elapsed"))
-                targetType = conditionTypes.FirstOrDefault(t => t.Name == "TimeElapsedConditionAsset");
-                
-            if (targetType != null)
-            {
-                var condition = ScriptableObject.CreateInstance(targetType) as ConditionAsset;
-                if (condition != null)
-                {
-                    string conditionName = isFailCondition ? "NewFailCondition" : "NewCondition";
-                    string conditionPath = AssetDatabase.GenerateUniqueAssetPath($"{directory}/{conditionName}.asset");
-                    
-                    condition.name = conditionName;
-                    AssetDatabase.CreateAsset(condition, conditionPath);
-                    AssetDatabase.SaveAssets();
-                    
-                    // Assign to objective
-                    if (isFailCondition)
-                    {
-                        _failConditionProp.objectReferenceValue = condition;
-                    }
-                    else
-                    {
-                        _completionConditionProp.objectReferenceValue = condition;
-                    }
-                    serializedObject.ApplyModifiedProperties();
-                    
-                    EditorGUIUtility.PingObject(condition);
-                }
-            }
-            else
-            {
-                Debug.LogWarning($"Could not find condition type for menu: {menuName}");
-            }
-        }
-
-        private void CreateCondition<T>(bool isFailCondition) where T : ConditionAsset
+        private void CreateCondition(System.Type conditionType, bool isFailCondition)
         {
             string assetPath = AssetDatabase.GetAssetPath(target);
             string directory = System.IO.Path.GetDirectoryName(assetPath);
             string conditionName = isFailCondition ? "NewFailCondition" : "NewCondition";
             string conditionPath = AssetDatabase.GenerateUniqueAssetPath($"{directory}/{conditionName}.asset");
             
-            var condition = CreateInstance<T>();
+            var condition = (ConditionAsset)CreateInstance(conditionType);
             condition.name = conditionName;
             AssetDatabase.CreateAsset(condition, conditionPath);
             AssetDatabase.SaveAssets();

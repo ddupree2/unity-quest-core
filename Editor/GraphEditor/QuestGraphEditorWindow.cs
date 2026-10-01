@@ -89,12 +89,35 @@ namespace DynamicBox.Quest.Editor.GraphEditor
             _lastUpdateTime = EditorApplication.timeSinceStartup;
 
             // Periodically check if assets have been modified externally
-            // This catches changes made through the Inspector or scripts
-            if (_currentQuest != null && EditorUtility.IsDirty(_currentQuest))
+            // This catches changes made through the Inspector or scripts.
+            // Compares the dirty count instead of clearing the dirty flag: clearing it meant the
+            // edit was never written to disk.
+            if (_currentQuest != null)
             {
-                RefreshGraph();
-                EditorUtility.ClearDirty(_currentQuest);
+                int dirtyCount = EditorUtility.GetDirtyCount(_currentQuest);
+                if (dirtyCount != _lastDirtyCount)
+                {
+                    _lastDirtyCount = dirtyCount;
+                    RefreshGraph();
+                }
             }
+        }
+
+        private int _lastDirtyCount;
+
+        /// <summary>
+        /// Rebuilds the graph from the assets (after an edit that changes connections, such as an
+        /// objective's prerequisites or conditions) and reselects the node showing <paramref name="selectAsset"/>.
+        /// </summary>
+        public void ReloadGraph(UnityEngine.Object selectAsset)
+        {
+            if (_graphView == null || _currentQuest == null)
+                return;
+
+            // Keep node positions, zoom and pan: LoadQuest restores them from the saved layout
+            _graphView.SaveLayout();
+            _graphView.LoadQuest(_currentQuest);
+            _graphView.SelectNodeForAsset(selectAsset);
         }
 
         private void RefreshGraph()

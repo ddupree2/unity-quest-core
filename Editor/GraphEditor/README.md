@@ -78,11 +78,11 @@ The Visual Quest Graph Editor is a node-based interface for creating and visuali
 Right-click in the graph to add new nodes:
 - Add Quest Node
 - Add Objective Node
-- Add Condition → Item Collected
-- Add Condition → Area Entered
-- Add Condition → Time Elapsed
-- Add Condition → Custom Flag
-- Add Condition → Condition Group
+- Add Condition → one entry per condition type, found automatically (`Editor/ConditionTypeCatalog.cs`).
+  Any new `ConditionAsset` subclass appears here with no editor code. The string-ID conditions
+  (Item Collected, Area Entered, Custom Flag) are hidden from the menu.
+
+Selecting a node shows the asset's own inspector in the side panel, so every field is editable there.
 
 *Note: In Phase 1, this creates placeholder nodes. Full creation functionality comes in Phase 3.*
 
@@ -169,7 +169,7 @@ Editor/
 │   │   ├─ QuestNode.cs             
 │   │   ├─ ObjectiveNode.cs         
 │   │   ├─ BaseConditionNode.cs     
-│   │   └─ ConditionNodes.cs        (All condition types)
+│   │   └─ ConditionNodes.cs        (ConditionNode: one generic node for every condition type)
 │   └─ USS/
 │       └─ QuestGraphStyles.uss     (Dark theme)
 └─ Resources/
