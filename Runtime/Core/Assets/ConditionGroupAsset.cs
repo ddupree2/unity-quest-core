@@ -25,7 +25,7 @@ namespace DynamicBox.Quest.Core
     /// Composite condition that combines multiple child conditions with AND/OR logic.
     /// Allows building complex condition logic from simple pieces.
     /// </summary>
-    [CreateAssetMenu(menuName = "DynamicBox/Quest/Condition Group", fileName = "NewConditionGroup")]
+    [CreateAssetMenu(menuName = "Star Stone Studio/Quests/Conditions/Condition Group", fileName = "NewConditionGroup")]
     public class ConditionGroupAsset : ConditionAsset
     {
         [SerializeField] private ConditionOperator @operator = ConditionOperator.And;

@@ -8,7 +8,7 @@ namespace DynamicBox.Quest.Core.Conditions
     /// Condition asset that completes when a specific item is collected.
     /// Listens to the assigned ItemCollectedScriptableEvent asset.
     /// </summary>
-    [CreateAssetMenu(menuName = "DynamicBox/Quest/Conditions/Item Collected", fileName = "NewItemCollectedCondition")]
+    [CreateAssetMenu(menuName = "Star Stone Studio/Quests/Legacy/Item Collected", fileName = "NewItemCollectedCondition")]
     public class ItemCollectedConditionAsset : ConditionAsset
     {
         [Tooltip("Event asset the game raises when an item is collected.")]

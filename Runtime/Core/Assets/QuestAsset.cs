@@ -8,7 +8,7 @@ namespace DynamicBox.Quest.Core
     /// Designer-authored quest definition (ScriptableObject).
     /// Contains quest metadata and references to objective assets.
     /// </summary>
-    [CreateAssetMenu(menuName = "DynamicBox/Quest/Quest", fileName = "NewQuest")]
+    [CreateAssetMenu(menuName = "Star Stone Studio/Quests/Quest", fileName = "NewQuest")]
     public class QuestAsset : ScriptableObject
     {
         [SerializeField] private string questId = string.Empty;

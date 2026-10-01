@@ -7,7 +7,7 @@ The Visual Quest Graph Editor is a node-based interface for creating and visuali
 ## Features (Phase 1 - Foundation)
 
 ✅ **Main Editor Window**
-- Open via `Tools → DynamicBox → Quest System → Quest Graph Editor`
+- Open via `Tools → Star Stone Studio → Quests → Graph Editor`
 - Toolbar with New, Load, and Save buttons
 - Grid background with zoom and pan controls
 
@@ -42,7 +42,7 @@ The Visual Quest Graph Editor is a node-based interface for creating and visuali
 ### Opening the Graph Editor
 
 **Method 1: Menu**
-1. Go to `Tools → DynamicBox → Quest System → Quest Graph Editor`
+1. Go to `Tools → Star Stone Studio → Quests → Graph Editor`
 2. Click "Load Quest" to select an existing quest
 3. Or click "New Quest" to create a new one
 

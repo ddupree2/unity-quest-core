@@ -8,7 +8,7 @@ namespace DynamicBox.Quest.Core
     /// Designer-authored objective definition (ScriptableObject).
     /// Contains objective metadata, prerequisites, and condition references.
     /// </summary>
-    [CreateAssetMenu(menuName = "DynamicBox/Quest/Objective", fileName = "NewObjective")]
+    [CreateAssetMenu(menuName = "Star Stone Studio/Quests/Objective", fileName = "NewObjective")]
     public class ObjectiveAsset : ScriptableObject
     {
         [SerializeField] private string objectiveId = string.Empty;

@@ -59,7 +59,7 @@ Conditions listen to **ScriptableEvent assets** (`ScriptableEvent<T>`), not a gl
 
 1. Add a QuestManager component to a GameObject in your scene
 2. Assign a QuestPlayerRef to provide quest context
-3. Create event assets (Create → DynamicBox → Quest → Events) and assign them on event-driven condition assets
+3. Create event assets (Create → Star Stone Studio → Quests → Events) and assign them on event-driven condition assets
 4. Start creating quests!
 
 ## Quick Start
@@ -83,7 +83,7 @@ questManager.GetComponent<QuestManager>().playerRef = playerRef;
 
 **Method 1: Visual Graph Editor (Recommended)**
 
-1. Open the Quest Graph Editor: `Tools → DynamicBox → Quest System → Quest Graph Editor`
+1. Open the Quest Graph Editor: `Tools → Star Stone Studio → Quests → Graph Editor`
 2. Click "New Quest" to create a new quest
 3. Add objectives and conditions using the node-based interface
 4. Visually connect prerequisites and conditions
@@ -692,7 +692,7 @@ public class QuestDebugger : MonoBehaviour
 ### Quest Debugger Window
 Access the visual quest debugger via Unity menu:
 ```
-Tools → DynamicBox → Quest System → Quest Debugger
+Tools → Star Stone Studio → Quests → Debugger
 ```
 
 Features:

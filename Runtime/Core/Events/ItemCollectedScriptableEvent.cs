@@ -8,7 +8,7 @@ namespace DynamicBox.Quest.Core.Events
     /// Event channel asset for item pickups (<see cref="ItemCollectedEvent"/>).
     /// Conditions listen to the asset assigned on their condition asset; game code raises the same asset.
     /// </summary>
-    [CreateAssetMenu(menuName = "DynamicBox/Quest/Events/Item Collected Event", fileName = "ItemCollectedScriptableEvent")]
+    [CreateAssetMenu(menuName = "Star Stone Studio/Quests/Legacy/Item Collected Event", fileName = "ItemCollectedScriptableEvent")]
     public sealed class ItemCollectedScriptableEvent : ScriptableEvent<ItemCollectedEvent>
     {
     }

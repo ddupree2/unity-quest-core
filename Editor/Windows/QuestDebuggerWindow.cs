@@ -99,7 +99,7 @@ namespace DynamicBox.Quest.Editor.Windows
 
         #endregion
 
-        [MenuItem("Tools/DynamicBox/Quest System/Debugger", false, 100)]
+        [MenuItem("Tools/Star Stone Studio/Quests/Debugger", false, 100)]
         public static void ShowWindow()
         {
             GetWindow<QuestDebuggerWindow>("Quest Debugger");

@@ -9,7 +9,7 @@ namespace DynamicBox.Quest.Core.Conditions
     /// Condition asset that completes when a specific area is entered.
     /// Listens to the assigned AreaEnteredScriptableEvent asset.
     /// </summary>
-    [CreateAssetMenu(menuName = "DynamicBox/Quest/Conditions/Area Entered Condition", fileName = "NewAreaEnteredCondition")]
+    [CreateAssetMenu(menuName = "Star Stone Studio/Quests/Legacy/Area Entered Condition", fileName = "NewAreaEnteredCondition")]
     public class AreaEnteredConditionAsset : ConditionAsset
     {
         [Tooltip("Event asset the game raises when the player enters an area.")]

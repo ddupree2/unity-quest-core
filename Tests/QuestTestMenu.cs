@@ -10,7 +10,7 @@ namespace DynamicBox.Quest.Tests
     /// </summary>
     public static class QuestTestMenu
     {
-        // [MenuItem("Tools/DynamicBox/Quest System/Run All Tests")]
+        // [MenuItem("Tools/Star Stone Studio/Quests/Run All Tests")]
         public static void RunAllTests()
         {
             Debug.Log("=== Running Quest System Tests from Menu ===");
@@ -33,7 +33,7 @@ namespace DynamicBox.Quest.Tests
             }
         }
         
-        // [MenuItem("Tools/DynamicBox/Quest System/Validate Test Setup")]
+        // [MenuItem("Tools/Star Stone Studio/Quests/Validate Test Setup")]
         public static void ValidateSetup()
         {
             Debug.Log("=== Validating Quest System Test Setup ===");
@@ -51,7 +51,7 @@ namespace DynamicBox.Quest.Tests
             }
         }
         
-        // [MenuItem("Tools/DynamicBox/Quest System/Run Quick Smoke Test")]
+        // [MenuItem("Tools/Star Stone Studio/Quests/Run Quick Smoke Test")]
         public static void RunSmokeTest()
         {
             Debug.Log("=== Running Quest System Smoke Test ===");
@@ -66,7 +66,7 @@ namespace DynamicBox.Quest.Tests
             }
         }
         
-        // [MenuItem("Tools/DynamicBox/Quest System/Open Test Documentation")]
+        // [MenuItem("Tools/Star Stone Studio/Quests/Open Test Documentation")]
         public static void OpenTestDocs()
         {
             string[] docFiles = {

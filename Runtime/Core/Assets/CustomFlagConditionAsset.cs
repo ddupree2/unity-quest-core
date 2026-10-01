@@ -9,7 +9,7 @@ namespace DynamicBox.Quest.Core.Conditions
     /// Condition asset that completes when a custom flag matches an expected value.
     /// Listens to the assigned FlagChangedScriptableEvent asset.
     /// </summary>
-    [CreateAssetMenu(menuName = "DynamicBox/Quest/Conditions/Custom Flag Condition", fileName = "NewCustomFlagCondition")]
+    [CreateAssetMenu(menuName = "Star Stone Studio/Quests/Legacy/Custom Flag Condition", fileName = "NewCustomFlagCondition")]
     public class CustomFlagConditionAsset : ConditionAsset
     {
         [Tooltip("Event asset the game raises when a flag changes.")]
