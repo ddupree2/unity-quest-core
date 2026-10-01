@@ -37,10 +37,20 @@ namespace DynamicBox.Quest.Editor.GraphEditor
 
         private void OnKeyDown(KeyDownEvent evt)
         {
-            // Check if we're typing in a text field
-            if (evt.target is TextField || evt.target is TextElement)
+            // Save works from anywhere in the window
+            if (evt.keyCode == KeyCode.S && (evt.ctrlKey || evt.commandKey))
             {
-                return; // Don't process shortcuts while typing
+                SaveGraph();
+                evt.StopPropagation();
+                return;
+            }
+
+            // Graph shortcuts only when the key press comes from the graph itself. The side panel's
+            // inspector is IMGUI, so its text fields aren't TextFields: without this, Backspace while
+            // typing a description deleted the selected node.
+            if (!IsFromGraph(evt) || EditorGUIUtility.editingTextField)
+            {
+                return;
             }
 
             switch (evt.keyCode)
@@ -67,14 +77,6 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                     }
                     break;
 
-                case KeyCode.S:
-                    if (evt.ctrlKey || evt.commandKey)
-                    {
-                        SaveGraph();
-                        evt.StopPropagation();
-                    }
-                    break;
-
                 case KeyCode.D:
                     if (evt.ctrlKey || evt.commandKey)
                     {
@@ -83,6 +85,17 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                     }
                     break;
             }
+        }
+
+        private bool IsFromGraph(KeyDownEvent evt)
+        {
+            // Text fields inside the graph (e.g. on nodes) still count as typing
+            if (evt.target is TextField || evt.target is TextElement)
+            {
+                return false;
+            }
+
+            return evt.target is VisualElement element && (element == _graphView || _graphView.Contains(element));
         }
 
         private void DeleteSelected()
