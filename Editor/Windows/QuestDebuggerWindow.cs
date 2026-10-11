@@ -484,7 +484,7 @@ namespace DynamicBox.Quest.Editor.Windows
 
         private void FindQuestManager()
         {
-            _questManager = Application.isPlaying ? FindFirstObjectByType<QuestManager>() : null;
+            _questManager = Application.isPlaying ? FindAnyObjectByType<QuestManager>() : null;
         }
 
         private void RefreshQuestAssets()

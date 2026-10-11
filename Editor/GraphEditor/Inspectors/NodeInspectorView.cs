@@ -213,7 +213,7 @@ namespace DynamicBox.Quest.Editor.GraphEditor
 
         private static string InstanceId(Object asset)
         {
-            return asset != null ? asset.GetInstanceID().ToString() : "-";
+            return asset != null ? asset.GetEntityId().ToString() : "-";
         }
 
         private void DestroyAssetEditor()

@@ -95,8 +95,8 @@ namespace DynamicBox.Quest.Editor.GraphEditor
                 return UnityEditor.AssetDatabase.AssetPathToGUID(path);
             }
 
-            // Fall back to instance ID for unsaved assets
-            return $"instance_{asset.GetInstanceID()}";
+            // Fall back to entity ID for unsaved assets
+            return $"instance_{asset.GetEntityId()}";
         }
 
         /// <summary>

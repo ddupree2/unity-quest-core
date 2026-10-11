@@ -30,9 +30,9 @@ namespace DynamicBox.Quest.Editor.GraphEditor
         /// Called when double-clicking a QuestAsset in the project.
         /// </summary>
         [OnOpenAsset(1)]
-        public static bool OnOpenAsset(int instanceID, int line)
+        public static bool OnOpenAsset(EntityId entityId, int line)
         {
-            var asset = EditorUtility.InstanceIDToObject(instanceID) as QuestAsset;
+            var asset = EditorUtility.EntityIdToObject(entityId) as QuestAsset;
             if (asset != null)
             {
                 OpenWindow();
